@@ -1,0 +1,10 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="text-center py-20">
+    <h1 class="text-6xl font-serif font-bold text-stone-800 mb-4">500</h1>
+    <p class="text-xl text-stone-600 mb-8">An internal server error occurred. Our librarians are investigating.</p>
+    <a href="{{ url_for('main.index') }}" class="text-amber-700 hover:text-amber-900 font-bold underline">Return to the
+        Library</a>
+</div>
+{% endblock %}

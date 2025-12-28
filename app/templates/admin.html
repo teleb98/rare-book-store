@@ -1,0 +1,92 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="flex justify-between items-center mb-8">
+    <h1 class="text-3xl font-serif font-bold text-gray-800">관리자 대시보드</h1>
+    <a href="{{ url_for('main.admin_add') }}"
+        class="bg-stone-900 hover:bg-stone-700 text-white font-bold py-2 px-4 rounded shadow transition duration-200 flex items-center">
+        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-2" viewBox="0 0 20 20" fill="currentColor">
+            <path fill-rule="evenodd"
+                d="M10 3a1 1 0 011 1v5h5a1 1 0 110 2h-5v5a1 1 0 11-2 0v-5H4a1 1 0 110-2h5V4a1 1 0 011-1z"
+                clip-rule="evenodd" />
+        </svg>
+        새 도서 추가
+    </a>
+</div>
+
+<div class="overflow-x-auto bg-white rounded-lg shadow border border-stone-200">
+    <table class="min-w-full leading-normal">
+        <thead class="bg-stone-100 text-stone-600 uppercase text-xs leading-normal">
+            <tr>
+                <th class="py-3 px-6 text-left">ID</th>
+                <th class="py-3 px-6 text-left">제목 / 저자</th>
+                <th class="py-3 px-6 text-left">상세 정보</th>
+                <th class="py-3 px-6 text-center">가격</th>
+                <th class="py-3 px-6 text-center">재고</th>
+                <th class="py-3 px-6 text-center">작업</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for book in books %}
+            <tr>
+                <td class="px-5 py-5 border-b border-stone-200 bg-white text-sm">
+                    <p class="text-stone-900 whitespace-no-wrap">{{ book.id }}</p>
+                </td>
+                <td class="px-5 py-5 border-b border-stone-200 bg-white text-sm">
+                    <div class="flex items-center">
+                        <div>
+                            <p class="text-stone-900 whitespace-no-wrap font-semibold  font-serif">{{ book.title }}</p>
+                            <p class="text-stone-500 whitespace-no-wrap text-xs">{{ book.author }}</p>
+                        </div>
+                    </div>
+                </td>
+                <td class="px-5 py-5 border-b border-stone-200 bg-white text-sm">
+                    <p class="text-stone-900 whitespace-no-wrap">{{ book.year }}</p>
+                    <p class="text-stone-500 text-xs">{{ book.condition }}</p>
+                </td>
+                <td class="px-5 py-5 border-b border-stone-200 bg-white text-sm">
+                    <p class="text-stone-900 whitespace-no-wrap font-bold">${{ "{:,.0f}".format(book.price) }}</p>
+                </td>
+                <td class="px-5 py-5 border-b border-stone-200 bg-white text-sm">
+                    {% if book.stock_quantity > 0 %}
+                    <span class="relative inline-block px-3 py-1 font-semibold text-green-900 leading-tight">
+                        <span aria-hidden="true" class="absolute inset-0 bg-green-200 opacity-50 rounded-full"></span>
+                        <span class="relative">{{ book.stock_quantity }}</span>
+                    </span>
+                    {% else %}
+                    <span class="relative inline-block px-3 py-1 font-semibold text-red-900 leading-tight">
+                        <span aria-hidden="true" class="absolute inset-0 bg-red-200 opacity-50 rounded-full"></span>
+                        <span class="relative">0</span>
+                    </span>
+                    {% endif %}
+                </td>
+                <td class="py-3 px-6 text-center">
+                    <div class="flex item-center justify-center">
+                        <a href="{{ url_for('main.admin_edit', id=book.id) }}"
+                            class="w-4 mr-2 transform hover:text-stone-800 hover:scale-110 transition title='수정'">
+                            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"
+                                stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                    d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
+                            </svg>
+                        </a>
+                        <form action="{{ url_for('main.admin_delete', id=book.id) }}" method="POST"
+                            onsubmit="return confirm('정말 삭제하시겠습니까?');" class="inline">
+                            <button type="submit"
+                                class="w-4 transform hover:text-red-500 hover:scale-110 transition cursor-pointer border-none bg-transparent"
+                                title="삭제">
+                                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"
+                                    stroke="currentColor">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                        d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                                </svg>
+                            </button>
+                        </form>
+                    </div>
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+{% endblock %}

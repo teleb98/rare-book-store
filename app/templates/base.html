@@ -1,0 +1,88 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Rare Book Store</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&family=DM+Serif+Display:ital@0;1&display=swap');
+
+        .font-serif {
+            font-family: 'DM Serif Display', serif;
+        }
+
+        .font-sans {
+            font-family: 'Inter', sans-serif;
+        }
+
+        /* Smooth Scroll */
+        html {
+            scroll-behavior: smooth;
+        }
+
+        /* Blur backdrop for navbar */
+        .backdrop-blur-md {
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+        }
+    </style>
+</head>
+
+<body
+    class="bg-white text-gray-900 font-sans antialiased flex flex-col min-h-screen selection:bg-blue-100 selection:text-blue-900">
+
+    <!-- Navbar -->
+    <nav
+        class="fixed w-full z-50 top-0 transition-all duration-300 bg-white/80 backdrop-blur-md border-b border-gray-100">
+        <div class="max-w-7xl mx-auto px-6 h-14 flex justify-between items-center">
+            <a href="{{ url_for('main.index') }}" class="flex items-center gap-2 group">
+                <span
+                    class="text-xl font-bold tracking-tight text-gray-900 group-hover:opacity-70 transition-opacity">RareBooks</span>
+            </a>
+            <div class="flex items-center gap-6 text-xs font-medium tracking-wide text-gray-500">
+                <a href="{{ url_for('main.index') }}" class="hover:text-black transition-colors">스토어</a>
+                <a href="{{ url_for('main.admin') }}" class="hover:text-black transition-colors">관리자</a>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Spacer for fixed nav -->
+    <div class="h-14"></div>
+
+    <!-- Flash Messages -->
+    <div class="max-w-7xl mx-auto px-6 mt-6">
+        {% with messages = get_flashed_messages(with_categories=true) %}
+        {% if messages %}
+        {% for category, message in messages %}
+        <div class="rounded-2xl px-6 py-4 mb-6 text-sm font-medium shadow-sm flex items-center gap-3
+                        {% if category == 'success' %}bg-green-50 text-green-700
+                        {% elif category == 'error' %}bg-red-50 text-red-700
+                        {% else %}bg-blue-50 text-blue-700{% endif %}" role="alert">
+            <span class="block">{{ message }}</span>
+        </div>
+        {% endfor %}
+        {% endif %}
+        {% endwith %}
+    </div>
+
+    <!-- Main Content -->
+    <main class="flex-grow">
+        {% block content %}{% endblock %}
+    </main>
+
+    <!-- Footer -->
+    <footer class="bg-gray-50 text-gray-400 py-16 mt-20 border-t border-gray-100">
+        <div class="max-w-7xl mx-auto px-6 flex flex-col items-center">
+            <p class="text-xs font-medium text-gray-500 mb-2">서울에서 디자인됨. 전 세계에서 수집됨.</p>
+            <div class="text-[10px] text-gray-400">
+                &copy; 2025 Rare Book Store Inc. All rights reserved.
+            </div>
+        </div>
+    </footer>
+
+</body>
+
+</html>

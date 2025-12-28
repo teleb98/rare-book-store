@@ -1,0 +1,118 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="max-w-xl mx-auto bg-white p-10 rounded-2xl shadow-xl border border-gray-100">
+    <h2 class="text-3xl font-serif font-bold text-gray-900 mb-8 tracking-tight">{{ '새 도서 추가' if action == 'Add' else '도서
+        수정' }}</h2>
+
+    <form method="POST" enctype="multipart/form-data" class="space-y-6">
+
+        {% if action == 'Add' %}
+        <!-- AI Automation Mode -->
+        <div>
+            <label class="block text-sm font-semibold text-gray-700 mb-2" for="book_image">도서 표지 이미지 (AI 분석)</label>
+            <div class="flex items-center justify-center w-full">
+                <label for="book_image"
+                    class="flex flex-col items-center justify-center w-full h-32 border-2 border-gray-300 border-dashed rounded-lg cursor-pointer bg-gray-50 hover:bg-gray-100 transition-colors">
+                    <div class="flex flex-col items-center justify-center pt-5 pb-6">
+                        <svg class="w-8 h-8 mb-3 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"
+                            xmlns="http://www.w3.org/2000/svg">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12">
+                            </path>
+                        </svg>
+                        <p class="text-sm text-gray-500"><span class="font-semibold">클릭하여 업로드</span> 및 분석
+                        </p>
+                    </div>
+                    <input id="book_image" name="book_image" type="file" class="hidden" accept="image/*" required />
+                </label>
+            </div>
+            <p class="text-xs text-gray-500 mt-2">Gemini가 제목, 저자, 연도 등을 자동으로 추출합니다.</p>
+        </div>
+        {% else %}
+        <!-- Edit Mode (Manual Fallback) -->
+        <div>
+            <label class="block text-gray-700 text-sm font-bold mb-2" for="title">제목</label>
+            <input
+                class="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline"
+                id="title" name="title" type="text" value="{{ book.title if book else '' }}" required>
+        </div>
+
+        <div>
+            <label class="block text-gray-700 text-sm font-bold mb-2" for="author">저자</label>
+            <input
+                class="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline"
+                id="author" name="author" type="text" value="{{ book.author if book else '' }}" required>
+        </div>
+
+        <div class="grid grid-cols-2 gap-4">
+            <div>
+                <label class="block text-gray-700 text-sm font-bold mb-2" for="year">출판년도</label>
+                <input
+                    class="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline"
+                    id="year" name="year" type="number" value="{{ book.year if book else '' }}" required>
+            </div>
+            <div>
+                <label class="block text-gray-700 text-sm font-bold mb-2" for="condition">상태</label>
+                <select
+                    class="shadow border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline"
+                    id="condition" name="condition" required>
+                    <option value="Mint" {% if book and book.condition=='Mint' %}selected{% endif %}>Mint</option>
+                    <option value="Fine" {% if book and book.condition=='Fine' %}selected{% endif %}>Fine</option>
+                    <option value="Very Good" {% if book and book.condition=='Very Good' %}selected{% endif %}>Very Good
+                    </option>
+                    <option value="Good" {% if book and book.condition=='Good' %}selected{% endif %}>Good</option>
+                    <option value="Fair" {% if book and book.condition=='Fair' %}selected{% endif %}>Fair</option>
+                    <option value="Poor" {% if book and book.condition=='Poor' %}selected{% endif %}>Poor</option>
+                </select>
+            </div>
+        </div>
+        <div>
+            <label class="block text-gray-700 text-sm font-bold mb-2" for="edition">판본 (선택)</label>
+            <input
+                class="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline"
+                id="edition" name="edition" type="text" value="{{ book.edition if book else '' }}" placeholder="예: 초판">
+        </div>
+
+        <div>
+            <label class="block text-gray-700 text-sm font-bold mb-2" for="description">설명 (선택)</label>
+            <textarea
+                class="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline h-32"
+                id="description" name="description">{{ book.description if book else '' }}</textarea>
+        </div>
+        {% endif %}
+
+        <div class="grid grid-cols-2 gap-6">
+            <div>
+                <label class="block text-sm font-semibold text-gray-700 mb-2" for="price">가격 ($)</label>
+                <div class="relative rounded-md shadow-sm">
+                    <div class="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3">
+                        <span class="text-gray-500 sm:text-sm">$</span>
+                    </div>
+                    <input type="number" name="price" id="price" step="0.01" min="0"
+                        value="{{ book.price if book else '' }}" required
+                        class="block w-full rounded-md border-gray-300 pl-7 py-3 focus:border-blue-500 focus:ring-blue-500 sm:text-sm bg-gray-50 border">
+                </div>
+            </div>
+            <div>
+                <label class="block text-sm font-semibold text-gray-700 mb-2" for="stock_quantity">재고</label>
+                <input type="number" name="stock_quantity" id="stock_quantity" min="0"
+                    value="{{ book.stock_quantity if book else 1 }}" required
+                    class="block w-full rounded-md border-gray-300 py-3 px-4 focus:border-blue-500 focus:ring-blue-500 sm:text-sm bg-gray-50 border">
+            </div>
+        </div>
+
+        <div class="flex items-center justify-between pt-6 border-t border-gray-100 mt-8">
+            <a class="text-sm font-medium text-gray-500 hover:text-gray-900 transition-colors"
+                href="{{ url_for('main.admin') }}">
+                취소
+            </a>
+            <button
+                class="bg-gray-900 hover:bg-black text-white font-bold py-3 px-8 rounded-full shadow-lg hover:shadow-xl transition-all duration-300 transform hover:-translate-y-0.5 text-sm uppercase tracking-wide"
+                type="submit">
+                {{ '도서 추가' if action == 'Add' else '도서 수정' }}
+            </button>
+        </div>
+    </form>
+</div>
+{% endblock %}
