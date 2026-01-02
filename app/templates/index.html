@@ -48,48 +48,54 @@
 
     <div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-x-6 gap-y-12">
         {% for book in books %}
-        <div class="group flex flex-col">
-            <!-- Book "Object" Visualization -->
-            <div
-                class="aspect-[2/3] mb-4 bg-white rounded-lg shadow-[0_8px_16px_-4px_rgba(0,0,0,0.1),0_4px_8px_-4px_rgba(0,0,0,0.06)] group-hover:shadow-[0_20px_25px_-5px_rgba(0,0,0,0.1),0_10px_10px_-5px_rgba(0,0,0,0.04)] group-hover:-translate-y-1 transition-all duration-300 ease-out overflow-hidden border border-gray-100 relative">
-
-                {% if book.image_file %}
-                <img src="{{ url_for('static', filename='book_covers/' + book.image_file) }}" alt="{{ book.title }}"
-                    class="w-full h-full object-cover">
-                {% else %}
-                <!-- Fallback gradient cover -->
+        <div class="group flex flex-col relative h-full">
+            <a href="{{ url_for('main.book_detail', id=book.id) }}"
+                class="block flex-grow flex flex-col cursor-pointer">
+                <!-- Book "Object" Visualization -->
                 <div
-                    class="absolute inset-0 bg-gradient-to-br from-gray-50 to-gray-200 flex items-center justify-center p-4 text-center">
-                    <span class="font-serif font-bold text-gray-400 text-xl leading-none opacity-50">{{ book.title[0:2]
-                        }}</span>
-                </div>
-                {% endif %}
+                    class="aspect-[2/3] mb-4 bg-white rounded-lg shadow-[0_8px_16px_-4px_rgba(0,0,0,0.1),0_4px_8px_-4px_rgba(0,0,0,0.06)] group-hover:shadow-[0_20px_25px_-5px_rgba(0,0,0,0.1),0_10px_10px_-5px_rgba(0,0,0,0.04)] group-hover:-translate-y-1 transition-all duration-300 ease-out overflow-hidden border border-gray-100 relative">
 
-                <!-- Stock Badge overlay -->
-                {% if book.stock_quantity == 0 %}
-                <div class="absolute inset-0 bg-white/60 backdrop-blur-sm flex items-center justify-center">
-                    <span
-                        class="bg-gray-900 text-white text-[10px] uppercase font-bold px-2 py-1 rounded-full">품절</span>
-                </div>
-                {% endif %}
-            </div>
-            <!-- Meta Data -->
-            <div class="flex-grow flex flex-col">
-                <h3 class="text-sm font-semibold text-gray-900 leading-tight mb-1 truncate">{{ book.title }}</h3>
-                <p class="text-xs text-gray-500 mb-2 truncate">{{ book.author }}</p>
-
-                <div class="mt-auto flex items-center justify-between">
-                    {% if book.stock_quantity > 0 %}
-                    <form action="{{ url_for('main.purchase', id=book.id) }}" method="POST">
-                        <button type="submit"
-                            class="bg-gray-100 hover:bg-gray-200 text-gray-900 text-xs font-bold py-1.5 px-4 rounded-full transition-colors uppercase tracking-wide">
-                            ${{ "{:,.0f}".format(book.price) }}
-                        </button>
-                    </form>
+                    {% if book.image_file %}
+                    <img src="{{ url_for('static', filename='book_covers/' + book.image_file) }}" alt="{{ book.title }}"
+                        class="w-full h-full object-cover">
                     {% else %}
-                    <span class="text-xs font-medium text-gray-400">구매 불가</span>
+                    <!-- Fallback gradient cover -->
+                    <div
+                        class="absolute inset-0 bg-gradient-to-br from-gray-50 to-gray-200 flex items-center justify-center p-4 text-center">
+                        <span class="font-serif font-bold text-gray-400 text-xl leading-none opacity-50">{{
+                            book.title[0:2]
+                            }}</span>
+                    </div>
+                    {% endif %}
+
+                    <!-- Stock Badge overlay -->
+                    {% if book.stock_quantity == 0 %}
+                    <div class="absolute inset-0 bg-white/60 backdrop-blur-sm flex items-center justify-center">
+                        <span
+                            class="bg-gray-900 text-white text-[10px] uppercase font-bold px-2 py-1 rounded-full">품절</span>
+                    </div>
                     {% endif %}
                 </div>
+                <!-- Meta Data -->
+                <div class="flex-grow flex flex-col">
+                    <h3
+                        class="text-sm font-semibold text-gray-900 leading-tight mb-1 truncate group-hover:text-blue-600 transition-colors">
+                        {{ book.title }}</h3>
+                    <p class="text-xs text-gray-500 mb-2 truncate">{{ book.author }}</p>
+                </div>
+            </a>
+
+            <div class="mt-auto pt-2 flex items-center justify-between border-t border-gray-50">
+                {% if book.stock_quantity > 0 %}
+                <form action="{{ url_for('main.purchase', id=book.id) }}" method="POST">
+                    <button type="submit"
+                        class="bg-gray-100 hover:bg-gray-200 text-gray-900 text-xs font-bold py-1.5 px-4 rounded-full transition-colors uppercase tracking-wide">
+                        ${{ "{:,.0f}".format(book.price) }}
+                    </button>
+                </form>
+                {% else %}
+                <span class="text-xs font-medium text-gray-400">구매 불가</span>
+                {% endif %}
             </div>
         </div>
         {% endfor %}

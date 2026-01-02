@@ -55,6 +55,11 @@ def get_book(id):
         'description': book.description
     })
 
+@main.route('/book/<int:id>')
+def book_detail(id):
+    book = Book.query.get_or_404(id)
+    return render_template('detail.html', book=book)
+
 @main.route('/purchase/<int:id>', methods=['POST'])
 def purchase(id):
     try:
@@ -121,14 +126,23 @@ def admin_add():
 
             model = genai.GenerativeModel('gemini-flash-latest')
             prompt = """
-            Analyze this book cover image. Extract the following details and return strictly valid JSON:
+            Analyze this book cover image.
+            1. Identify the Title and Author of the book from the text on the cover.
+            2. Using your internal knowledge about this specific book (based on the identified Title/Author), generate a "description" that serves as a curatorial note.
+            
+            IMPORTANT: The 'description' field MUST be written in Korean (한국어).
+            The description should NOT just describe the cover art.
+            Instead, explain the book's plot, themes, literary significance, and why it is worth collecting.
+            Make it engaging and professional, like a museum curator introducing a masterpiece.
+
+            Return strictly valid JSON:
             {
-                "title": "Book Title",
-                "author": "Author Name",
+                "title": "Book Title (Identified from cover)",
+                "author": "Author Name (Identified from cover)",
                 "year": 1900 (Use an estimated year if not visible, as integer),
                 "edition": "First Edition (or 'Unknown')",
                 "condition": "Good (Estimate based on visual wear)",
-                "description": "A short, engaging description of the book based on its visual appeal and historical context."
+                "description": "A rich, engaging curation note about the book's content and literary value. WRITE THIS IN KOREAN."
             }
             """
             

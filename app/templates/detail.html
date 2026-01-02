@@ -1,0 +1,96 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="max-w-7xl mx-auto px-6 py-12 lg:py-20">
+    <div class="grid grid-cols-1 lg:grid-cols-2 gap-12 lg:gap-20">
+        <!-- Left: Image -->
+        <div class="relative group">
+            <div
+                class="aspect-[3/4] w-full max-w-lg mx-auto rounded-lg overflow-hidden shadow-2xl bg-gray-100 relative">
+                {% if book.image_file %}
+                <img src="{{ url_for('static', filename='book_covers/' + book.image_file) }}" alt="{{ book.title }}"
+                    class="w-full h-full object-cover">
+                {% else %}
+                <div
+                    class="w-full h-full bg-gradient-to-br from-gray-200 to-gray-400 flex items-center justify-center text-gray-500">
+                    <span class="text-lg">No Cover Image</span>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+
+        <!-- Right: Details -->
+        <div class="flex flex-col justify-center">
+            <h1 class="text-4xl lg:text-5xl font-serif font-black text-gray-900 tracking-tight leading-tight mb-2">
+                {{ book.title }}
+            </h1>
+            <p class="text-xl text-gray-600 mb-8 font-serif italic">
+                by {{ book.author }}
+            </p>
+
+            <!-- Metadata Grid -->
+            <div class="grid grid-cols-2 gap-6 mb-10 border-t border-b border-gray-100 py-6">
+                <div>
+                    <span class="block text-xs uppercase tracking-widest text-gray-400 font-semibold mb-1">Year</span>
+                    <span class="text-lg font-medium text-gray-900">{{ book.year }}</span>
+                </div>
+                <div>
+                    <span
+                        class="block text-xs uppercase tracking-widest text-gray-400 font-semibold mb-1">Condition</span>
+                    <span class="text-lg font-medium text-gray-900">{{ book.condition }}</span>
+                </div>
+                <div>
+                    <span
+                        class="block text-xs uppercase tracking-widest text-gray-400 font-semibold mb-1">Edition</span>
+                    <span class="text-lg font-medium text-gray-900">{{ book.edition or '-' }}</span>
+                </div>
+                <div>
+                    <span class="block text-xs uppercase tracking-widest text-gray-400 font-semibold mb-1">Stock</span>
+                    {% if book.stock_quantity > 0 %}
+                    <span class="text-lg font-medium text-green-600">{{ book.stock_quantity }} Available</span>
+                    {% else %}
+                    <span class="text-lg font-medium text-red-500">Sold Out</span>
+                    {% endif %}
+                </div>
+            </div>
+
+            <!-- AI Curator Note -->
+            {% if book.description %}
+            <div class="mb-10 bg-gray-50 p-6 rounded-2xl border border-gray-100">
+                <h3 class="flex items-center text-sm font-bold text-blue-600 uppercase tracking-wider mb-3">
+                    <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                            d="M13 10V3L4 14h7v7l9-11h-7z" />
+                    </svg>
+                    AI Curator's Note
+                </h3>
+                <p class="text-gray-700 leading-relaxed font-serif text-lg">
+                    {{ book.description }}
+                </p>
+            </div>
+            {% endif %}
+
+            <!-- Action -->
+            <div class="flex items-center justify-between">
+                <div class="text-3xl font-bold text-gray-900">
+                    ${{ "%.2f"|format(book.price) }}
+                </div>
+
+                {% if book.stock_quantity > 0 %}
+                <form action="{{ url_for('main.purchase', id=book.id) }}" method="POST">
+                    <button type="submit"
+                        class="bg-gray-900 hover:bg-black text-white px-8 py-4 rounded-full font-medium transition duration-300 transform hover:scale-105 shadow-lg flex items-center">
+                        Purchase Now
+                    </button>
+                </form>
+                {% else %}
+                <button disabled
+                    class="bg-gray-200 text-gray-400 px-8 py-4 rounded-full font-medium cursor-not-allowed">
+                    Out of Stock
+                </button>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
