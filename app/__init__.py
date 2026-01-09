@@ -11,6 +11,13 @@ def create_app():
     # Configuration
     base_dir = os.path.abspath(os.path.dirname(__file__))
     db_path = os.path.join(base_dir, '../data/site.db')
+    
+    # Ensure database directory exists
+    try:
+        os.makedirs(os.path.dirname(db_path), exist_ok=True)
+    except OSError:
+        pass # Handle read-only file systems or other errors gracefully if needed
+
     app.config['SQLALCHEMY_DATABASE_URI'] = f'sqlite:///{db_path}'
     app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
     app.config['SECRET_KEY'] = 'dev-secret-key-change-this-in-prod'
@@ -20,6 +27,11 @@ def create_app():
     # Import and register routes
     from app.routes import main
     app.register_blueprint(main)
+    
+    # Create DB tables if they don't exist
+    with app.app_context():
+        from app.models import Book
+        db.create_all()
 
     # Global Error Handlers
     @app.errorhandler(404)
