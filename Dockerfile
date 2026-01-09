@@ -16,5 +16,5 @@ EXPOSE 8080
 # Define environment variable
 ENV PORT=8080
 
-# Run gunicorn when the container launches
-CMD ["gunicorn", "--bind", "0.0.0.0:8080", "run:app"]
+# Run gunicorn when the container launches, binding to the PORT environment variable
+CMD ["sh", "-c", "gunicorn --bind 0.0.0.0:${PORT} run:app"]
