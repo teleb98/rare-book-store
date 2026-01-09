@@ -34,8 +34,8 @@ def admin_required(f):
 @main.route('/login', methods=['GET', 'POST'])
 def login():
     if request.method == 'POST':
-        password = request.form.get('password')
-        admin_password = os.environ.get('ADMIN_PASSWORD', 'admin1234')
+        password = request.form.get('password', '').strip()
+        admin_password = os.environ.get('ADMIN_PASSWORD', 'admin1234').strip()
         
         if password == admin_password:
             session['is_admin'] = True
