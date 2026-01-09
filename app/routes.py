@@ -9,6 +9,7 @@ import json
 from PIL import Image
 import io
 
+from app.utils import search_google_books
 # Configure Gemini
 GOOGLE_API_KEY = os.environ.get("GOOGLE_API_KEY")
 if GOOGLE_API_KEY:
@@ -58,7 +59,20 @@ def get_book(id):
 @main.route('/book/<int:id>')
 def book_detail(id):
     book = Book.query.get_or_404(id)
-    return render_template('detail.html', book=book)
+    
+    # Recommendation Logic: Same Author OR Similar Era (+/- 20 years)
+    similar_books = Book.query.filter(
+        (Book.id != book.id) & 
+        (
+            (Book.author == book.author) | 
+            ((Book.year >= book.year - 20) & (Book.year <= book.year + 20))
+        )
+    ).limit(4).all()
+
+    # Web Search Recommendations
+    web_recommendations = search_google_books(book.title, book.author)
+
+    return render_template('detail.html', book=book, similar_books=similar_books, web_recommendations=web_recommendations)
 
 @main.route('/purchase/<int:id>', methods=['POST'])
 def purchase(id):

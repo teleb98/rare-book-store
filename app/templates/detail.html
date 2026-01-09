@@ -92,5 +92,69 @@
             </div>
         </div>
     </div>
+
+    <!-- Similar Books Section -->
+    {% if similar_books %}
+    <div class="mt-20 border-t border-gray-200 pt-16">
+        <h2 class="text-3xl font-serif font-bold text-gray-900 mb-10 text-center">You Might Also Like</h2>
+        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8">
+            {% for sim_book in similar_books %}
+            <a href="{{ url_for('main.book_detail', id=sim_book.id) }}" class="group block">
+                <div
+                    class="aspect-[3/4] w-full rounded-lg overflow-hidden bg-gray-100 mb-4 shadow-sm group-hover:shadow-md transition duration-300">
+                    {% if sim_book.image_file %}
+                    <img src="{{ url_for('static', filename='book_covers/' + sim_book.image_file) }}"
+                        alt="{{ sim_book.title }}"
+                        class="w-full h-full object-cover group-hover:scale-105 transition duration-500">
+                    {% else %}
+                    <div class="w-full h-full bg-gray-200 flex items-center justify-center text-gray-400">
+                        <span class="text-xs">No Cover</span>
+                    </div>
+                    {% endif %}
+                </div>
+                <h3 class="text-lg font-bold text-gray-900 group-hover:text-blue-900 transition mb-1 line-clamp-1">{{
+                    sim_book.title }}</h3>
+                <p class="text-sm text-gray-600 mb-2 font-serif italic">{{ sim_book.author }}</p>
+                <p class="text-sm font-semibold text-gray-900">${{ "%.2f"|format(sim_book.price) }}</p>
+            </a>
+            {% endfor %}
+        </div>
+    </div>
+    {% endif %}
+
+    <!-- Web Recommendations Section -->
+    {% if web_recommendations %}
+    <div class="mt-20 border-t border-gray-200 pt-16 mb-20">
+        <h2 class="text-3xl font-serif font-bold text-gray-900 mb-10 text-center">New Books by the Same Author</h2>
+        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8">
+            {% for web_book in web_recommendations %}
+            <a href="{{ web_book.link }}" target="_blank" rel="noopener noreferrer" class="group block">
+                <div
+                    class="aspect-[3/4] w-full rounded-lg overflow-hidden bg-gray-100 mb-4 shadow-sm group-hover:shadow-md transition duration-300">
+                    {% if web_book.thumbnail %}
+                    <img src="{{ web_book.thumbnail }}" alt="{{ web_book.title }}"
+                        class="w-full h-full object-cover group-hover:scale-105 transition duration-500">
+                    {% else %}
+                    <div class="w-full h-full bg-gray-200 flex items-center justify-center text-gray-400">
+                        <span class="text-xs">No Cover</span>
+                    </div>
+                    {% endif %}
+                </div>
+                <h3 class="text-lg font-bold text-gray-900 group-hover:text-blue-900 transition mb-1 line-clamp-1">{{
+                    web_book.title }}</h3>
+                <p class="text-sm text-gray-600 mb-2 font-serif italic line-clamp-1">{{ web_book.author }}</p>
+                <div class="text-xs text-blue-600 font-semibold flex items-center">
+                    View on Google Books
+                    <svg class="w-3 h-3 ml-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                            d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
+                    </svg>
+                </div>
+            </a>
+            {% endfor %}
+        </div>
+    </div>
+    {% endif %}
+
 </div>
 {% endblock %}
