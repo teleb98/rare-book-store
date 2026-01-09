@@ -37,6 +37,12 @@ def login():
         password = request.form.get('password', '').strip()
         admin_password = os.environ.get('ADMIN_PASSWORD', 'admin1234').strip()
         
+        # Debug Logs (Check Render Logs tab)
+        print(f"DEBUG: Login Attempt.")
+        print(f"DEBUG: Input Password Length: {len(password)}")
+        print(f"DEBUG: Admin Password Length: {len(admin_password)}")
+        print(f"DEBUG: ADMIN_PASSWORD env var present: {'ADMIN_PASSWORD' in os.environ}")
+        
         if password == admin_password:
             session['is_admin'] = True
             flash('관리자 모드로 로그인되었습니다.', 'success')
