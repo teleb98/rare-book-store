@@ -16,7 +16,14 @@ def create_app():
     try:
         os.makedirs(os.path.dirname(db_path), exist_ok=True)
     except OSError:
-        pass # Handle read-only file systems or other errors gracefully if needed
+        pass # Handle read-only file systems
+
+    # Ensure static book covers directory exists
+    covers_path = os.path.join(base_dir, 'static/book_covers')
+    try:
+        os.makedirs(covers_path, exist_ok=True)
+    except OSError:
+        pass
 
     app.config['SQLALCHEMY_DATABASE_URI'] = f'sqlite:///{db_path}'
     app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
