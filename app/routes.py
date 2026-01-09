@@ -1,4 +1,5 @@
-from flask import Blueprint, render_template, request, flash, redirect, url_for, jsonify, current_app
+from flask import Blueprint, render_template, request, flash, redirect, url_for, jsonify, current_app, session
+from functools import wraps
 from app import db
 from app.models import Book
 from sqlalchemy.exc import SQLAlchemyError
@@ -17,6 +18,39 @@ if GOOGLE_API_KEY:
 
 
 main = Blueprint('main', __name__)
+
+# --- Authentication Decorator ---
+def admin_required(f):
+    @wraps(f)
+    def decorated_function(*args, **kwargs):
+        if not session.get('is_admin'):
+            flash('로그인이 필요합니다.', 'error')
+            return redirect(url_for('main.login'))
+        return f(*args, **kwargs)
+    return decorated_function
+
+# --- Login Routes ---
+
+@main.route('/login', methods=['GET', 'POST'])
+def login():
+    if request.method == 'POST':
+        password = request.form.get('password')
+        admin_password = os.environ.get('ADMIN_PASSWORD', 'admin1234')
+        
+        if password == admin_password:
+            session['is_admin'] = True
+            flash('관리자 모드로 로그인되었습니다.', 'success')
+            return redirect(url_for('main.admin'))
+        else:
+            flash('비밀번호가 올바르지 않습니다.', 'error')
+            
+    return render_template('login.html')
+
+@main.route('/logout')
+def logout():
+    session.pop('is_admin', None)
+    flash('로그아웃되었습니다.', 'success')
+    return redirect(url_for('main.index'))
 
 # --- Public Routes ---
 
@@ -97,11 +131,13 @@ def purchase(id):
 # --- Admin Routes ---
 
 @main.route('/admin')
+@admin_required
 def admin():
     books = Book.query.all()
     return render_template('admin.html', books=books)
 
 @main.route('/admin/add', methods=['GET', 'POST'])
+@admin_required
 def admin_add():
     if request.method == 'POST':
         try:
@@ -195,6 +231,7 @@ def admin_add():
     return render_template('admin_form.html', action='Add', book=None)
 
 @main.route('/admin/edit/<int:id>', methods=['GET', 'POST'])
+@admin_required
 def admin_edit(id):
     book = Book.query.get_or_404(id)
     if request.method == 'POST':
@@ -220,6 +257,7 @@ def admin_edit(id):
     return render_template('admin_form.html', action='Edit', book=book)
 
 @main.route('/admin/delete/<int:id>', methods=['POST'])
+@admin_required
 def admin_delete(id):
     book = Book.query.get_or_404(id)
     try:
