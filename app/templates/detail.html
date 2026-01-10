@@ -125,7 +125,7 @@
     <!-- Web Recommendations Section -->
     {% if web_recommendations %}
     <div class="mt-20 border-t border-gray-200 pt-16 mb-20">
-        <h2 class="text-3xl font-serif font-bold text-gray-900 mb-10 text-center">New Books by the Same Author</h2>
+        <h2 class="text-3xl font-serif font-bold text-gray-900 mb-10 text-center">Other Books by the Same Author</h2>
         <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8">
             {% for web_book in web_recommendations %}
             <a href="{{ web_book.link }}" target="_blank" rel="noopener noreferrer" class="group block">

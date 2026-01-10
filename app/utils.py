@@ -31,9 +31,18 @@ def search_google_books(title, author):
                 continue
             book_authors = volume_info.get('authors', ['Unknown'])
             
-            # Get thumbnail if available
+            # Get thumbnail if available, and try to upgrade quality
             image_links = volume_info.get('imageLinks', {})
             thumbnail = image_links.get('thumbnail')
+            if thumbnail:
+                # Force HTTPS
+                thumbnail = thumbnail.replace('http://', 'https://')
+                # Remove edge=curl if present (often causes curled page effect)
+                thumbnail = thumbnail.replace('&edge=curl', '')
+                # Try to get higher resolution (zoom=1 is usually small)
+                # We can try replacing zoom=1 with zoom=0, or removing it.
+                # Often zoom=0 gives a larger image if available.
+                thumbnail = thumbnail.replace('&zoom=1', '&zoom=0')
             
             # Info link
             info_link = volume_info.get('infoLink', '#')
