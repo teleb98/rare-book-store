@@ -3,15 +3,21 @@
 {% block content %}
 <div class="flex justify-between items-center mb-8">
     <h1 class="text-3xl font-serif font-bold text-gray-800">관리자 대시보드</h1>
-    <a href="{{ url_for('main.admin_add') }}"
-        class="bg-stone-900 hover:bg-stone-700 text-white font-bold py-2 px-4 rounded shadow transition duration-200 flex items-center">
-        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-2" viewBox="0 0 20 20" fill="currentColor">
-            <path fill-rule="evenodd"
-                d="M10 3a1 1 0 011 1v5h5a1 1 0 110 2h-5v5a1 1 0 11-2 0v-5H4a1 1 0 110-2h5V4a1 1 0 011-1z"
-                clip-rule="evenodd" />
-        </svg>
-        새 도서 추가
-    </a>
+    <div class="flex gap-4">
+        <a href="{{ url_for('main.logout') }}"
+            class="bg-gray-200 hover:bg-gray-300 text-gray-700 font-bold py-2 px-4 rounded shadow transition duration-200 flex items-center">
+            로그아웃
+        </a>
+        <a href="{{ url_for('main.admin_add') }}"
+            class="bg-stone-900 hover:bg-stone-700 text-white font-bold py-2 px-4 rounded shadow transition duration-200 flex items-center">
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-2" viewBox="0 0 20 20" fill="currentColor">
+                <path fill-rule="evenodd"
+                    d="M10 3a1 1 0 011 1v5h5a1 1 0 110 2h-5v5a1 1 0 11-2 0v-5H4a1 1 0 110-2h5V4a1 1 0 011-1z"
+                    clip-rule="evenodd" />
+            </svg>
+            새 도서 추가
+        </a>
+    </div>
 </div>
 
 <div class="overflow-x-auto bg-white rounded-lg shadow border border-stone-200">

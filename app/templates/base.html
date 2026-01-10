@@ -44,7 +44,12 @@
             </a>
             <div class="flex items-center gap-6 text-xs font-medium tracking-wide text-gray-500">
                 <a href="{{ url_for('main.index') }}" class="hover:text-black transition-colors">스토어</a>
-                <a href="{{ url_for('main.admin') }}" class="hover:text-black transition-colors">관리자</a>
+                {% if session.get('is_admin') %}
+                <a href="{{ url_for('main.admin') }}" class="hover:text-black transition-colors">대시보드</a>
+                <a href="{{ url_for('main.logout') }}" class="hover:text-red-500 transition-colors">로그아웃</a>
+                {% else %}
+                <a href="{{ url_for('main.login') }}" class="hover:text-black transition-colors">관리자</a>
+                {% endif %}
             </div>
         </div>
     </nav>

@@ -171,14 +171,32 @@ def admin_add():
             unique_filename = f"{uuid.uuid4().hex}_{filename}"
             save_path = os.path.join(current_app.root_path, 'static/book_covers', unique_filename)
             
-            # Reset pointer for saving (since we read it for Gemini)
+            # Reset pointer for saving
             image_file.seek(0)
-            image_file.save(save_path)
-
-            # Read bytes again for Gemini (or use the previous read if still in memory, but safer to read from file or reset stream)
-            image_file.seek(0)
+            
+            # --- Image Optimization for Mobile Uploads ---
             image_bytes = image_file.read()
             img = Image.open(io.BytesIO(image_bytes))
+            
+            # Convert to RGB if necessary (e.g. for PNG/RGBA uploads or palette modes)
+            if img.mode in ('RGBA', 'P'):
+                img = img.convert('RGB')
+
+            # Resize if too large (Max dimension: 800px)
+            max_size = (800, 800)
+            img.thumbnail(max_size, Image.Resampling.LANCZOS)
+            
+            # Save optimized image
+            img.save(save_path, 'JPEG', quality=85)
+
+            # Re-read optimized image into memory for Gemini
+            # (Instead of reading the original large file again)
+            img_byte_arr = io.BytesIO()
+            img.save(img_byte_arr, format='JPEG')
+            img_byte_arr.seek(0) # IMPORTANT: wrapper for Gemini
+            
+            # For Gemini, we can pass the Pillow Image object directly if we just opened/resized it
+            # But let's pass the optimized object we have in memory
 
             model = genai.GenerativeModel('gemini-flash-latest')
             prompt = """
