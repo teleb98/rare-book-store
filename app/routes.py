@@ -196,6 +196,9 @@ def admin_add():
             img.save(img_byte_arr, format='JPEG')
             img_byte_arr.seek(0)
             img_base64 = base64.b64encode(img_byte_arr.getvalue()).decode('utf-8')
+            
+            if not img_base64:
+                raise ValueError("이미지 변환에 실패했습니다 (Base64 Empty).")
             # ------------------------------
 
             # For Gemini, we reset the buffer enabling us to send the bytes
@@ -297,6 +300,9 @@ def admin_edit(id):
                 img_byte_arr = io.BytesIO()
                 img.save(img_byte_arr, format='JPEG')
                 img_base64 = base64.b64encode(img_byte_arr.getvalue()).decode('utf-8')
+
+                if not img_base64:
+                    raise ValueError("이미지 변환에 실패했습니다 (Base64 Empty).")
                 
                 # Update attributes
                 book.image_file = "stored_in_db"

@@ -87,6 +87,19 @@
                 class="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline bg-white"
                 id="book_image" name="book_image" type="file" accept="image/*">
             <p class="text-xs text-gray-500 mt-1">파일을 선택하면 기존 이미지가 교체됩니다.</p>
+            
+            <!-- Current Image Preview -->
+            {% if book.image_data %}
+            <div class="mt-4">
+                <p class="text-sm font-bold text-gray-700 mb-2">현재 표지:</p>
+                <img src="data:image/jpeg;base64,{{ book.image_data }}" alt="Current Cover" class="h-32 rounded border border-gray-300 shadow-sm">
+            </div>
+            {% elif book.image_file and book.image_file != 'stored_in_db' %}
+             <div class="mt-4">
+                <p class="text-sm font-bold text-gray-700 mb-2">현재 표지 (파일):</p>
+                <img src="{{ url_for('static', filename='book_covers/' + book.image_file) }}" alt="Current Cover" class="h-32 rounded border border-gray-300 shadow-sm">
+            </div>
+            {% endif %}
         </div>
         {% endif %}
 
