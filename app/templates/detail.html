@@ -7,7 +7,10 @@
         <div class="relative group">
             <div
                 class="aspect-[3/4] w-full max-w-lg mx-auto rounded-lg overflow-hidden shadow-2xl bg-gray-100 relative">
-                {% if book.image_file %}
+                {% if book.image_data %}
+                <img src="data:image/jpeg;base64,{{ book.image_data }}" alt="{{ book.title }}"
+                    class="w-full h-full object-cover">
+                {% elif book.image_file %}
                 <img src="{{ url_for('static', filename='book_covers/' + book.image_file) }}" alt="{{ book.title }}"
                     class="w-full h-full object-cover">
                 {% else %}
@@ -102,7 +105,10 @@
             <a href="{{ url_for('main.book_detail', id=sim_book.id) }}" class="group block">
                 <div
                     class="aspect-[3/4] w-full rounded-lg overflow-hidden bg-gray-100 mb-4 shadow-sm group-hover:shadow-md transition duration-300">
-                    {% if sim_book.image_file %}
+                    {% if sim_book.image_data %}
+                    <img src="data:image/jpeg;base64,{{ sim_book.image_data }}" alt="{{ sim_book.title }}"
+                        class="w-full h-full object-cover group-hover:scale-105 transition duration-500">
+                    {% elif sim_book.image_file %}
                     <img src="{{ url_for('static', filename='book_covers/' + sim_book.image_file) }}"
                         alt="{{ sim_book.title }}"
                         class="w-full h-full object-cover group-hover:scale-105 transition duration-500">

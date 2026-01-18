@@ -55,7 +55,10 @@
                 <div
                     class="aspect-[2/3] mb-4 bg-white rounded-lg shadow-[0_8px_16px_-4px_rgba(0,0,0,0.1),0_4px_8px_-4px_rgba(0,0,0,0.06)] group-hover:shadow-[0_20px_25px_-5px_rgba(0,0,0,0.1),0_10px_10px_-5px_rgba(0,0,0,0.04)] group-hover:-translate-y-1 transition-all duration-300 ease-out overflow-hidden border border-gray-100 relative">
 
-                    {% if book.image_file %}
+                    {% if book.image_data %}
+                    <img src="data:image/jpeg;base64,{{ book.image_data }}" alt="{{ book.title }}"
+                        class="w-full h-full object-cover">
+                    {% elif book.image_file %}
                     <img src="{{ url_for('static', filename='book_covers/' + book.image_file) }}" alt="{{ book.title }}"
                         class="w-full h-full object-cover">
                     {% else %}

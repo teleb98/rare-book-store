@@ -9,6 +9,7 @@ import os
 import json
 from PIL import Image
 import io
+import base64
 
 from app.utils import search_google_books
 # Configure Gemini
@@ -167,9 +168,9 @@ def admin_add():
             from werkzeug.utils import secure_filename
             import uuid
             
-            filename = secure_filename(image_file.filename)
-            unique_filename = f"{uuid.uuid4().hex}_{filename}"
-            save_path = os.path.join(current_app.root_path, 'static/book_covers', unique_filename)
+            # filename = secure_filename(image_file.filename)
+            # unique_filename = f"{uuid.uuid4().hex}_{filename}"
+            # save_path = os.path.join(current_app.root_path, 'static/book_covers', unique_filename)
             
             # Reset pointer for saving
             image_file.seek(0)
@@ -186,17 +187,22 @@ def admin_add():
             max_size = (800, 800)
             img.thumbnail(max_size, Image.Resampling.LANCZOS)
             
-            # Save optimized image
-            img.save(save_path, 'JPEG', quality=85)
-
-            # Re-read optimized image into memory for Gemini
-            # (Instead of reading the original large file again)
+            # Resize if too large (Max dimension: 800px)
+            max_size = (800, 800)
+            img.thumbnail(max_size, Image.Resampling.LANCZOS)
+            
+            # --- BASE64 ENCODING FOR DB ---
             img_byte_arr = io.BytesIO()
             img.save(img_byte_arr, format='JPEG')
-            img_byte_arr.seek(0) # IMPORTANT: wrapper for Gemini
+            img_byte_arr.seek(0)
+            img_base64 = base64.b64encode(img_byte_arr.getvalue()).decode('utf-8')
+            # ------------------------------
+
+            # For Gemini, we reset the buffer enabling us to send the bytes
+            img_byte_arr.seek(0)
             
-            # For Gemini, we can pass the Pillow Image object directly if we just opened/resized it
-            # But let's pass the optimized object we have in memory
+            # For Gemini, we can pass the Pillow Image object directly
+
 
             model = genai.GenerativeModel('gemini-flash-latest')
             prompt = """
@@ -235,7 +241,8 @@ def admin_add():
                 price=price,
                 stock_quantity=stock,
                 description=book_data.get('description', ''),
-                image_file=unique_filename
+                image_file="stored_in_db", # Placeholder as we use DB storage now
+                image_data=img_base64      # New DB storage
             )
             db.session.add(new_book)
             db.session.commit()
@@ -268,6 +275,32 @@ def admin_edit(id):
             book.price = float(request.form['price'])
             book.stock_quantity = int(request.form['stock_quantity'])
             book.description = request.form.get('description')
+
+            # Handle Image Replacement in Edit
+            image_file = request.files.get('book_image')
+            if image_file and image_file.filename:
+                # Save locally (Legacy/Redundancy)
+                from werkzeug.utils import secure_filename
+                import uuid
+                
+                # filename = secure_filename(image_file.filename)
+                # unique_filename = f"{uuid.uuid4().hex}_{filename}"
+                # save_path = os.path.join(current_app.root_path, 'static/book_covers', unique_filename)
+                
+                # Image Optimization
+                img = Image.open(image_file)
+                if img.mode in ('RGBA', 'P'):
+                    img = img.convert('RGB')
+                img.thumbnail((800, 800), Image.Resampling.LANCZOS)
+                
+                # Base64 Encode for DB
+                img_byte_arr = io.BytesIO()
+                img.save(img_byte_arr, format='JPEG')
+                img_base64 = base64.b64encode(img_byte_arr.getvalue()).decode('utf-8')
+                
+                # Update attributes
+                book.image_file = "stored_in_db"
+                book.image_data = img_base64
 
             db.session.commit()
             flash('도서 정보가 수정되었습니다!', 'success')

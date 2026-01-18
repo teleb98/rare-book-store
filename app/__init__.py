@@ -51,6 +51,22 @@ def create_app():
         from app.models import Book
         db.create_all()
 
+        # --- Auto-Migration: Add image_data column if missing ---
+        # This is critical for Render where we can't easily run manual migrations
+        try:
+            inspector = db.inspect(db.engine)
+            columns = [col['name'] for col in inspector.get_columns('book')]
+            if 'image_data' not in columns:
+                print("Migrating: Adding 'image_data' column to 'book' table...")
+                with db.engine.connect() as conn:
+                    # SQLite and PostgreSQL syntax for ADD COLUMN is compatible for this simple case
+                    conn.execute(db.text("ALTER TABLE book ADD COLUMN image_data TEXT"))
+                    conn.commit()
+                print("Migration complete: 'image_data' column added.")
+        except Exception as e:
+            print(f"Migration check failed (safe to ignore if app works): {e}")
+        # --------------------------------------------------------
+
     # Global Error Handlers
     @app.errorhandler(404)
     def page_not_found(e):
