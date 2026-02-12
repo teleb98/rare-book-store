@@ -11,7 +11,7 @@ from PIL import Image
 import io
 import base64
 
-from app.utils import search_google_books
+from app.utils import search_books_with_fallback
 # Configure Gemini
 GOOGLE_API_KEY = os.environ.get("GOOGLE_API_KEY")
 if GOOGLE_API_KEY:
@@ -110,8 +110,8 @@ def book_detail(id):
         )
     ).limit(4).all()
 
-    # Web Search Recommendations
-    web_recommendations = search_google_books(book.title, book.author)
+    # Web Search Recommendations (with automatic fallback)
+    web_recommendations = search_books_with_fallback(book.title, book.author)
 
     return render_template('detail.html', book=book, similar_books=similar_books, web_recommendations=web_recommendations)
 
