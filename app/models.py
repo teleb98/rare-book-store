@@ -11,7 +11,7 @@ class Book(db.Model):
     stock_quantity = db.Column(db.Integer, default=0, nullable=False)
     description = db.Column(db.Text, nullable=True)
     image_file = db.Column(db.String(255), nullable=True)
-    image_data = db.Column(db.Text(16777215), nullable=True) # Base64 encoded image data (Use explicit length for MySQL MEDIUMTEXT)
+    image_data = db.Column(db.Text, nullable=True)  # Base64 encoded image data (PostgreSQL-compatible)
 
     def __repr__(self):
         return f'<Book {self.title}>'
