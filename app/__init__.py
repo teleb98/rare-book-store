@@ -26,19 +26,24 @@ def create_app():
         pass
 
     # Database Configuration
+    # Priority: DATABASE_URL (PostgreSQL for production) > SQLite (local development)
     database_url = os.environ.get('DATABASE_URL')
     
     if database_url:
-        # Render/Heroku provide 'postgres://' but SQLAlchemy 1.4+ requires 'postgresql://'
+        # Fix Render/Heroku/Supabase postgres:// to postgresql:// for SQLAlchemy 1.4+
         if database_url.startswith("postgres://"):
             database_url = database_url.replace("postgres://", "postgresql://", 1)
         app.config['SQLALCHEMY_DATABASE_URI'] = database_url
+        print(f"✓ Using PostgreSQL database (production mode)")
     else:
-        # Local Development Fallback
+        # Local Development: Use SQLite
         app.config['SQLALCHEMY_DATABASE_URI'] = f'sqlite:///{db_path}'
+        print(f"✓ Using SQLite database (development mode): {db_path}")
         
     app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
-    app.config['SECRET_KEY'] = 'dev-secret-key-change-this-in-prod'
+    
+    # Use environment SECRET_KEY if available, otherwise fallback to dev key
+    app.config['SECRET_KEY'] = os.environ.get('SECRET_KEY', 'dev-secret-key-change-this-in-prod')
 
     db.init_app(app)
 

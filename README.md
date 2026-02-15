@@ -91,9 +91,77 @@ The application will be available at `http://127.0.0.1:5001`.
 
 ## Deployment Options
 
-### Option 1: Render (Recommended)
+### Option 1: Vercel + Supabase (Recommended - 100% FREE Forever)
 
-Render offers a generous free tier with easy deployment:
+**Vercel** offers a generous free Hobby plan with **no time limits**. Combined with **Supabase PostgreSQL** (free 500MB), you get a completely free, production-ready deployment.
+
+#### Step 1: Setup Supabase Database (Free PostgreSQL)
+
+1. Go to [Supabase](https://supabase.com) and create a free account
+2. Click "New Project"
+3. Fill in project details:
+   - Name: `rare-book-store`
+   - Database Password: Create a strong password (save it!)
+   - Region: Choose closest to your users
+4. Wait 2-3 minutes for database provisioning
+5. Go to **Settings** → **Database**
+6. Copy the **Connection String (URI)** under "Connection string"
+   - Format: `postgresql://postgres.[project-ref]:[password]@aws-0-[region].pooler.supabase.com:6543/postgres`
+   - Make sure to replace `[YOUR-PASSWORD]` with your actual database password
+
+#### Step 2: Deploy to Vercel
+
+1. **Fork this repository** to your GitHub account (if you haven't already)
+
+2. Go to [Vercel](https://vercel.com) and sign up with GitHub
+
+3. Click **"Add New Project"** → **"Import Git Repository"**
+
+4. Select your `rare-book-store` repository
+
+5. Configure your project:
+   - **Framework Preset**: Other
+   - **Build Command**: (leave empty)
+   - **Output Directory**: (leave empty)
+
+6. **Add Environment Variables**:
+   - `DATABASE_URL`: Your Supabase connection string from Step 1
+   - `ADMIN_PASSWORD`: Your admin dashboard password (create a secure one)
+   - `GOOGLE_API_KEY`: (Optional) Your Google Gemini API key for AI features
+   - `SECRET_KEY`: (Optional) A random string for Flask sessions (auto-generated if not provided)
+
+7. Click **"Deploy"**
+
+8. Wait 2-3 minutes for deployment to complete
+
+9. Your app will be live at: `https://rare-book-store-[random].vercel.app`
+
+#### First-Time Database Setup
+
+After deploying, visit your Vercel URL once. The app will automatically:
+- Create database tables (books)
+- Initialize the schema
+
+Then you can:
+- Access the storefront: `https://your-app.vercel.app/`
+- Login to admin dashboard: `https://your-app.vercel.app/login`
+- Add your rare books via the admin interface
+
+#### Custom Domain (Optional)
+
+In Vercel Dashboard → Settings → Domains, you can add a custom domain for free.
+
+**Vercel Free Tier Limits** (More than enough for this app):
+- Serverless functions: 100GB-hrs/month
+- Bandwidth: 100GB/month
+- Deployments: Unlimited
+- **No sleep/downtime** (unlike Render free tier)
+
+---
+
+### Option 2: Render (Free with limitations)
+
+Render offers a free tier but with limitations:
 
 1. Fork this repository to your GitHub account
 2. Go to [Render Dashboard](https://dashboard.render.com/)
@@ -107,11 +175,16 @@ Render offers a generous free tier with easy deployment:
 
 Your app will be live at `https://your-app-name.onrender.com`
 
-**Note**: Free tier apps sleep after 15 minutes of inactivity. First request after sleep takes ~30 seconds.
+**⚠️ Important Limitations**:
+- Free tier apps **sleep after 15 minutes** of inactivity
+- First request after sleep takes **30-60 seconds** (cold start)
+- Free PostgreSQL database expires after **90 days**
 
-### Option 2: Railway
+---
 
-Railway provides simple deployment with automatic HTTPS:
+### Option 3: Railway (Paid - $5/month minimum)
+
+Railway provides simple deployment but **no longer offers a free tier**:
 
 1. Fork this repository
 2. Go to [Railway](https://railway.app/)
@@ -121,9 +194,11 @@ Railway provides simple deployment with automatic HTTPS:
 6. Add environment variables in Railway dashboard
 7. Deploy!
 
-**Free tier**: $5 monthly credit (enough for small projects)
+**Cost**: $5/month minimum (includes $5 usage credits)
 
-### Option 3: Fly.io
+---
+
+### Option 4: Fly.io (Paid - ~$2-3/month)
 
 For global edge deployment:
 
@@ -149,16 +224,32 @@ flyctl deploy
 flyctl open
 ```
 
-**Free tier**: 3 VMs with 256MB RAM each
+**Cost**: ~$2-3/month for a small Flask app
+
+---
+
+### Comparison Table
+
+| Platform | Cost | Cold Start | Database | Best For |
+|----------|------|------------|----------|----------|
+| **Vercel + Supabase** | **FREE** | None | PostgreSQL (500MB) | **Recommended** |
+| Render | FREE | 30-60s | PostgreSQL (90 days) | Testing only |
+| Railway | $5/month | None | Included | Production apps |
+| Fly.io | $2-3/month | Minimal | Extra cost | Global distribution |
 
 ### Environment Variables for Deployment
 
 All platforms require these environment variables:
 
-- `GOOGLE_API_KEY`: (Optional) For AI book analysis feature
-- `ADMIN_PASSWORD`: (Required) Password for admin dashboard access
-- `SECRET_KEY`: (Auto-generated on most platforms) Flask session secret
-- `PORT`: (Auto-set by platform) Application port
+**Required:**
+- `DATABASE_URL`: PostgreSQL connection string from Supabase (or other provider)
+  - Example: `postgresql://postgres:[password]@[host]:5432/postgres`
+- `ADMIN_PASSWORD`: Password for admin dashboard access
+
+**Optional:**
+- `GOOGLE_API_KEY`: For AI book analysis feature (Google Gemini)
+- `SECRET_KEY`: Flask session encryption key (auto-generated if not set)
+- `PORT`: Application port (auto-set by most platforms)
 
 ## Project Structure
 
@@ -167,8 +258,12 @@ All platforms require these environment variables:
     - `models.py`: Database models
     - `routes.py`: Application logic and API
     - `utils.py`: API utilities (Open Library & Google Books)
-- `data/`: SQLite database storage
+- `api/`: Vercel serverless functions
+    - `index.py`: Vercel entry point (WSGI handler)
+- `data/`: SQLite database storage (local development only)
 - `run.py`: Application entry point
+- `vercel.json`: **Vercel deployment configuration** ⭐
+- `.vercelignore`: Files to exclude from Vercel deployment
 - `render.yaml`: Render.com deployment configuration
 - `railway.json`: Railway deployment configuration
 - `Dockerfile`: Docker containerization
@@ -177,11 +272,11 @@ All platforms require these environment variables:
 ## Technology Stack
 
 - **Backend**: Flask, SQLAlchemy
-- **Database**: SQLite (local), PostgreSQL (production ready)
+- **Database**: PostgreSQL (Supabase) for production, SQLite for local development
 - **AI**: Google Gemini for image analysis
 - **APIs**: Open Library (primary), Google Books (fallback)
 - **Frontend**: Tailwind CSS
-- **Deployment**: Render / Railway / Fly.io compatible
+- **Deployment**: Vercel (recommended), Render, Railway, Fly.io compatible
 
 ## Contributing
 
