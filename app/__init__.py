@@ -34,6 +34,13 @@ def create_app():
         # Fix Render/Heroku/Supabase postgres:// to postgresql:// for SQLAlchemy 1.4+
         if database_url.startswith("postgres://"):
             database_url = database_url.replace("postgres://", "postgresql://", 1)
+        
+        # Add connect_timeout to prevent infinite hangs during hibernation wakeups
+        if "?" not in database_url:
+            database_url += "?connect_timeout=10"
+        else:
+            database_url += "&connect_timeout=10"
+            
         app.config['SQLALCHEMY_DATABASE_URI'] = database_url
         print(f"✓ Using PostgreSQL database (production mode)")
     else:
