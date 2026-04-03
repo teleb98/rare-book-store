@@ -9,9 +9,7 @@ load_dotenv()
 # Create app instance at module level for Vercel WSGI compatibility
 app = create_app()
 
-# Initialize database tables
-with app.app_context():
-    db.create_all()
+# Database initialization is already handled safely inside create_app()
 
 # Local development server
 if __name__ == '__main__':
