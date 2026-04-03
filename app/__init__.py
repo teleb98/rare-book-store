@@ -55,23 +55,37 @@ def create_app():
     # Create DB tables if they don't exist
     with app.app_context():
         from app.models import Book
-        db.create_all()
-
-        # --- Auto-Migration: Add image_data column if missing ---
-        # This is critical for Render where we can't easily run manual migrations
-        try:
-            inspector = db.inspect(db.engine)
-            columns = [col['name'] for col in inspector.get_columns('book')]
-            if 'image_data' not in columns:
-                print("Migrating: Adding 'image_data' column to 'book' table...")
-                with db.engine.connect() as conn:
-                    # SQLite and PostgreSQL syntax for ADD COLUMN is compatible for this simple case
-                    conn.execute(db.text("ALTER TABLE book ADD COLUMN image_data TEXT"))
-                    conn.commit()
-                print("Migration complete: 'image_data' column added.")
-        except Exception as e:
-            print(f"Migration check failed (safe to ignore if app works): {e}")
-        # --------------------------------------------------------
+        import time
+        max_retries = 6
+        for attempt in range(max_retries):
+            try:
+                db.create_all()
+        
+                # --- Auto-Migration: Add image_data column if missing ---
+                # This is critical for Render where we can't easily run manual migrations
+                try:
+                    inspector = db.inspect(db.engine)
+                    columns = [col['name'] for col in inspector.get_columns('book')]
+                    if 'image_data' not in columns:
+                        print("Migrating: Adding 'image_data' column to 'book' table...")
+                        with db.engine.connect() as conn:
+                            # SQLite and PostgreSQL syntax for ADD COLUMN is compatible for this simple case
+                            conn.execute(db.text("ALTER TABLE book ADD COLUMN image_data TEXT"))
+                            conn.commit()
+                        print("Migration complete: 'image_data' column added.")
+                except Exception as e:
+                    print(f"Migration check failed (safe to ignore if app works): {e}")
+                # --------------------------------------------------------
+                
+                print("Database initialization successful.")
+                break # Success! Break out of the retry loop
+            except Exception as e:
+                print(f"Database connection attempt {attempt + 1} failed: {e}")
+                if attempt < max_retries - 1:
+                    print("Retrying in 5 seconds... (Waiting for database to wake up)")
+                    time.sleep(5)
+                else:
+                    print("Max retries reached. Let application crash or run without DB setup.")
 
     # Global Error Handlers
     @app.errorhandler(404)
