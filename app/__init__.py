@@ -10,13 +10,14 @@ def create_app():
     # Configuration
     # Configuration
     base_dir = os.path.abspath(os.path.dirname(__file__))
-    db_path = os.path.join(base_dir, '../data/site.db')
+    db_path = os.path.join(base_dir, 'data/site.db')
     
     # Ensure database directory exists
     try:
         os.makedirs(os.path.dirname(db_path), exist_ok=True)
     except OSError:
-        pass # Handle read-only file systems
+        # Fallback to /tmp which is always writable on Render and Unix systems
+        db_path = '/tmp/site.db'
 
     # Ensure static book covers directory exists
     covers_path = os.path.join(base_dir, 'static/book_covers')
