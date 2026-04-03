@@ -30,6 +30,18 @@ def create_app():
     # Priority: DATABASE_URL (PostgreSQL for production) > SQLite (local development)
     database_url = os.environ.get('DATABASE_URL')
     
+    if database_url and database_url.startswith("postgres"):
+        import socket
+        from urllib.parse import urlparse
+        # Extract hostname to check if Render DB is still alive or expired (Name not known)
+        host = urlparse(database_url.replace("postgres://", "http://").replace("postgresql://", "http://")).hostname
+        try:
+            if host:
+                socket.gethostbyname(host)
+        except socket.gaierror:
+            print(f"Warning: PostgreSQL host {host} is unreachable (likely expired). Falling back to SQLite.")
+            database_url = None
+
     if database_url:
         # Fix Render/Heroku/Supabase postgres:// to postgresql:// for SQLAlchemy 1.4+
         if database_url.startswith("postgres://"):
@@ -101,15 +113,6 @@ def create_app():
 
     @app.errorhandler(500)
     def internal_server_error(e):
-        import traceback
-        import sys
-        # Get the full traceback of the most recent exception
-        exc_type, exc_value, exc_tb = sys.exc_info()
-        if exc_value:
-            error_trace = "".join(traceback.format_exception(exc_type, exc_value, exc_tb))
-        else:
-            error_trace = str(e)
-            
-        return f"<h1>500 Internal Server Error</h1><pre>{error_trace}</pre>", 500
+        return render_template('500.html'), 500
 
     return app
