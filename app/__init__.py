@@ -113,6 +113,15 @@ def create_app():
 
     @app.errorhandler(500)
     def internal_server_error(e):
-        return render_template('500.html'), 500
+        import traceback
+        import sys
+        
+        exc_type, exc_value, exc_tb = sys.exc_info()
+        if exc_value:
+            error_trace = "".join(traceback.format_exception(exc_type, exc_value, exc_tb))
+        else:
+            error_trace = str(e)
+            
+        return f"<h1>500 Internal Server Error</h1><pre>{error_trace}</pre>", 500
 
     return app
