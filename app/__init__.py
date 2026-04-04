@@ -31,15 +31,14 @@ def create_app():
     database_url = os.environ.get('DATABASE_URL')
     
     if database_url and database_url.startswith("postgres"):
-        import socket
-        from urllib.parse import urlparse
-        # Extract hostname to check if Render DB is still alive or expired (Name not known)
-        host = urlparse(database_url.replace("postgres://", "http://").replace("postgresql://", "http://")).hostname
+        import psycopg2
         try:
-            if host:
-                socket.gethostbyname(host)
-        except socket.gaierror:
-            print(f"Warning: PostgreSQL host {host} is unreachable (likely expired). Falling back to SQLite.")
+            # Actively test PostgreSQL connectivity and authentication with a 3-second timeout
+            test_url = database_url.replace("postgresql://", "postgres://")
+            conn = psycopg2.connect(test_url, connect_timeout=3)
+            conn.close()
+        except Exception as e:
+            print(f"Warning: PostgreSQL connection test failed: {e}. Falling back to SQLite.")
             database_url = None
 
     if database_url:
