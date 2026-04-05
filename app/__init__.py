@@ -16,8 +16,15 @@ def create_app():
     try:
         os.makedirs(os.path.dirname(db_path), exist_ok=True)
     except OSError:
-        # Fallback to /tmp which is always writable on Render and Unix systems
+        # Fallback to /tmp which is always writable on Vercel and Render Serverless environments
         db_path = '/tmp/site.db'
+        
+        # If running on Vercel (read-only filesystem), inject the pre-seeded robust database into /tmp so it always starts beautifully
+        import shutil
+        base_catalog = os.path.join(base_dir, 'data/base_catalog.db')
+        if not os.path.exists(db_path) and os.path.exists(base_catalog):
+            shutil.copyfile(base_catalog, db_path)
+            print("Vercel Cold Start: Automatically restored the base catalog into the ephemeral /tmp disk!")
 
     # Ensure static book covers directory exists
     covers_path = os.path.join(base_dir, 'static/book_covers')
