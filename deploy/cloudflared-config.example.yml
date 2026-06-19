@@ -1,0 +1,12 @@
+# ~/.cloudflared/config.yml 로 복사 후 <TUNNEL_ID> 를 실제 값으로 교체
+# (cloudflared tunnel list 로 ID 확인)
+
+tunnel: <TUNNEL_ID>
+credentials-file: /Users/chiwon/.cloudflared/<TUNNEL_ID>.json
+
+ingress:
+  - hostname: rarebook.co.kr
+    service: http://127.0.0.1:8000
+  - hostname: www.rarebook.co.kr
+    service: http://127.0.0.1:8000
+  - service: http_status:404

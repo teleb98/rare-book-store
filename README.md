@@ -2,6 +2,8 @@
 
 A Flask-based application for managing a rare book inventory. Features a modern UI with Tailwind CSS, AI-powered book analysis, stock management with atomic updates, and an admin dashboard.
 
+> **Self-hosting on a Mac mini?** See [`deploy/README.md`](deploy/README.md) for serving this app at a custom domain (e.g. `rarebook.co.kr`) via Cloudflare Tunnel + launchd, with local PostgreSQL.
+
 ## Features
 
 - **Storefront**: Browse rare books with card layout
