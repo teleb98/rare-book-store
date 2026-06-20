@@ -75,6 +75,19 @@
         </div>
 
         <div>
+            <label class="block text-gray-700 text-sm font-bold mb-2">장르 (자동 태깅 결과 검수/수정, 최대 2개)</label>
+            <div class="grid grid-cols-2 gap-2">
+                {% set current_genres = (book.genre.split(',') if book and book.genre else []) %}
+                {% for g in genre_taxonomy %}
+                <label class="flex items-center gap-2 text-sm text-gray-700 bg-gray-50 border rounded px-3 py-2 cursor-pointer">
+                    <input type="checkbox" name="genre" value="{{ g }}" {% if g in current_genres %}checked{% endif %}>
+                    {{ g }}
+                </label>
+                {% endfor %}
+            </div>
+        </div>
+
+        <div>
             <label class="block text-gray-700 text-sm font-bold mb-2" for="description">설명 (선택)</label>
             <textarea
                 class="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline h-32"

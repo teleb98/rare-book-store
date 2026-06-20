@@ -1,0 +1,66 @@
+{% extends "base.html" %}
+{% block title %}주문 내역 | Rare Book Store{% endblock %}
+
+{% macro status_badge(status) %}
+    {% set styles = {
+        'received':  'bg-blue-50 text-blue-700',
+        'contacted': 'bg-violet-50 text-violet-700',
+        'shipped':   'bg-amber-50 text-amber-700',
+        'completed': 'bg-emerald-50 text-emerald-700',
+        'cancelled': 'bg-gray-100 text-gray-400'
+    } %}
+    <span class="text-[11px] font-bold px-2.5 py-1 rounded-full {{ styles.get(status, 'bg-gray-100 text-gray-500') }}">
+        {{ status_labels.get(status, status) }}
+    </span>
+{% endmacro %}
+
+{% block content %}
+<div class="max-w-3xl mx-auto px-6 py-16">
+    <div class="flex items-center justify-between mb-8">
+        <h1 class="text-3xl font-serif font-bold text-gray-900">주문 내역</h1>
+        <a href="{{ url_for('main.index') }}" class="text-sm text-blue-500 hover:underline">스토어로 돌아가기 →</a>
+    </div>
+
+    {% if not orders %}
+    <div class="py-24 text-center">
+        <div class="inline-flex items-center justify-center w-16 h-16 rounded-full bg-gray-100 mb-6">
+            <svg class="w-8 h-8 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5"
+                    d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 11-4 0 2 2 0 014 0z"/>
+            </svg>
+        </div>
+        <p class="text-gray-500 text-lg font-semibold mb-1">아직 주문 내역이 없습니다</p>
+        <a href="{{ url_for('main.index') }}" class="inline-flex items-center text-sm font-medium text-blue-500 hover:underline mt-2">← 도서 둘러보기</a>
+    </div>
+    {% else %}
+    <div class="space-y-4">
+        {% for order in orders %}
+        <div class="flex items-center justify-between gap-4 bg-white border border-gray-100 rounded-2xl px-6 py-5 shadow-sm">
+            <div class="min-w-0">
+                <div class="flex items-center gap-2 mb-1">
+                    {{ status_badge(order.status) }}
+                    <span class="text-xs text-gray-400">{{ order.created_at.strftime('%Y.%m.%d') }}</span>
+                </div>
+                {% if order.book_id %}
+                <a href="{{ url_for('main.book_detail', id=order.book_id) }}"
+                   class="font-serif font-bold text-gray-900 hover:text-blue-600 transition-colors line-clamp-1">{{ order.book_title }}</a>
+                {% else %}
+                <span class="font-serif font-bold text-gray-900 line-clamp-1">{{ order.book_title }}</span>
+                {% endif %}
+                <p class="text-sm text-gray-500 mt-0.5">&#8361;{{ "{:,.0f}".format(order.price) }}</p>
+            </div>
+            <div class="text-right flex-shrink-0">
+                <span class="text-[11px] text-gray-400">주문번호</span>
+                <p class="text-sm font-mono text-gray-600">#{{ '%06d'|format(order.id) }}</p>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+
+    <p class="mt-8 text-center text-xs text-gray-400">
+        주문은 "확인 후 연락" 방식으로 처리됩니다. 진행 상황은 위 상태로 표시되며, 문의는
+        <a href="mailto:hello@rarebook.co.kr" class="underline">hello@rarebook.co.kr</a>로 보내주세요.
+    </p>
+    {% endif %}
+</div>
+{% endblock %}

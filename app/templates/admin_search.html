@@ -1,0 +1,339 @@
+{% extends "base.html" %}
+{% block title %}도서 검색 등록 | 관리자{% endblock %}
+
+{% block content %}
+<div class="max-w-5xl mx-auto px-4 py-10">
+
+  <!-- 헤더 -->
+  <div class="flex items-center justify-between mb-8">
+    <div>
+      <h1 class="text-3xl font-serif font-bold text-gray-900">도서 검색으로 등록</h1>
+      <p class="text-sm text-gray-500 mt-1">제목 또는 저자를 검색하여 도서 정보를 자동으로 가져옵니다.</p>
+    </div>
+    <a href="{{ url_for('main.admin') }}"
+       class="text-sm font-medium text-gray-500 hover:text-gray-900 transition-colors flex items-center gap-1">
+      <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/>
+      </svg>
+      대시보드로 돌아가기
+    </a>
+  </div>
+
+  <!-- 검색창 -->
+  <div class="bg-white rounded-2xl shadow-sm border border-gray-100 p-6 mb-8">
+    <div class="flex gap-3">
+      <div class="relative flex-1">
+        <div class="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none text-gray-400">
+          <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+              d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/>
+          </svg>
+        </div>
+        <input id="search-input" type="text"
+          placeholder="도서 제목 또는 저자명 입력 (예: Hemingway, The Great Gatsby)"
+          class="w-full bg-gray-50 border border-gray-200 rounded-xl py-3.5 pl-12 pr-4 text-gray-900
+                 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-gray-900 focus:bg-white transition-all"
+          autocomplete="off">
+      </div>
+      <button id="search-btn"
+        class="bg-gray-900 hover:bg-black text-white font-semibold px-6 py-3.5 rounded-xl transition-colors flex items-center gap-2 whitespace-nowrap">
+        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+            d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/>
+        </svg>
+        검색
+      </button>
+    </div>
+  </div>
+
+  <!-- 검색 결과 영역 -->
+  <div id="results-area" class="hidden">
+    <div class="flex items-center justify-between mb-4">
+      <h2 id="results-title" class="text-sm font-semibold text-gray-500 uppercase tracking-wider"></h2>
+      <span id="results-count" class="text-xs text-gray-400"></span>
+    </div>
+    <div id="results-grid" class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-5"></div>
+  </div>
+
+  <!-- 로딩 -->
+  <div id="loading" class="hidden py-20 text-center">
+    <div class="inline-block w-8 h-8 border-4 border-gray-200 border-t-gray-900 rounded-full animate-spin mb-4"></div>
+    <p class="text-gray-500 text-sm">Google Books에서 검색 중...</p>
+  </div>
+
+  <!-- API Key 없음 안내 -->
+  <div id="no-key-notice" class="hidden py-12 max-w-lg mx-auto">
+    <div class="bg-amber-50 border border-amber-200 rounded-2xl p-6">
+      <div class="flex gap-4">
+        <div class="flex-shrink-0">
+          <svg class="w-6 h-6 text-amber-500 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+              d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/>
+          </svg>
+        </div>
+        <div>
+          <h3 class="font-bold text-amber-800 mb-1">한국 도서 검색 API Key 필요</h3>
+          <p class="text-sm text-amber-700 mb-3">한국어 도서를 검색하려면 카카오 또는 네이버 API Key가 필요합니다.<br>아래 방법 중 하나로 설정해주세요.</p>
+          <div class="space-y-2 text-xs">
+            <div class="bg-white rounded-lg p-3 border border-amber-100">
+              <p class="font-bold text-gray-700 mb-1">🟡 카카오 책 검색 (권장, 무료)</p>
+              <ol class="text-gray-600 space-y-0.5 list-decimal list-inside">
+                <li><a href="https://developers.kakao.com" target="_blank" class="text-blue-600 hover:underline">developers.kakao.com</a> 가입 → 앱 만들기</li>
+                <li>앱 → 앱 키 → REST API 키 복사</li>
+                <li><code class="bg-gray-100 px-1 rounded">.env</code> 파일에 <code class="bg-gray-100 px-1 rounded">KAKAO_REST_API_KEY=발급받은키</code> 추가</li>
+              </ol>
+            </div>
+            <div class="bg-white rounded-lg p-3 border border-amber-100">
+              <p class="font-bold text-gray-700 mb-1">🟢 네이버 책 검색 (무료)</p>
+              <ol class="text-gray-600 space-y-0.5 list-decimal list-inside">
+                <li><a href="https://developers.naver.com" target="_blank" class="text-blue-600 hover:underline">developers.naver.com</a> → 애플리케이션 등록</li>
+                <li>Client ID / Secret 복사</li>
+                <li><code class="bg-gray-100 px-1 rounded">.env</code>에 <code class="bg-gray-100 px-1 rounded">NAVER_CLIENT_ID=</code> / <code class="bg-gray-100 px-1 rounded">NAVER_CLIENT_SECRET=</code> 추가 후 서버 재시작</li>
+              </ol>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 빈 결과 -->
+  <div id="no-results" class="hidden py-20 text-center">
+    <div class="inline-flex items-center justify-center w-14 h-14 rounded-full bg-gray-100 mb-4">
+      <svg class="w-7 h-7 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5"
+          d="M9.172 16.172a4 4 0 015.656 0M9 10h.01M15 10h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+      </svg>
+    </div>
+    <p class="text-gray-500 font-semibold">검색 결과가 없습니다</p>
+    <p class="text-gray-400 text-sm mt-1">다른 제목이나 저자명으로 다시 검색해보세요.</p>
+  </div>
+
+</div>
+
+<!-- ============================================================
+     등록 모달
+============================================================ -->
+<div id="register-modal" class="hidden fixed inset-0 z-[200] flex items-center justify-center">
+  <div class="absolute inset-0 bg-black/50 backdrop-blur-sm" onclick="closeRegisterModal()"></div>
+  <div class="relative bg-white rounded-3xl shadow-2xl w-full max-w-lg mx-4 z-10 overflow-hidden">
+
+    <!-- 모달 상단: 책 정보 미리보기 -->
+    <div class="flex gap-5 p-6 bg-gray-50 border-b border-gray-100">
+      <img id="modal-cover" src="" alt="" class="w-20 h-28 object-cover rounded-lg shadow-md flex-shrink-0 bg-gray-200">
+      <div class="min-w-0">
+        <p class="text-xs text-gray-400 uppercase tracking-wider font-semibold mb-1">선택한 도서</p>
+        <h3 id="modal-title" class="font-serif font-bold text-gray-900 text-lg leading-tight line-clamp-2"></h3>
+        <p id="modal-author" class="text-sm text-gray-500 italic mt-1"></p>
+        <div class="flex items-center gap-3 mt-2 text-xs text-gray-400">
+          <span id="modal-year"></span>
+          <span id="modal-isbn" class="font-mono"></span>
+        </div>
+      </div>
+    </div>
+
+    <!-- 등록 폼 -->
+    <form id="register-form" action="{{ url_for('main.admin_add_from_search') }}" method="POST" class="p-6 space-y-5">
+      <!-- 숨겨진 메타데이터 -->
+      <input type="hidden" name="title"       id="f-title">
+      <input type="hidden" name="author"      id="f-author">
+      <input type="hidden" name="year"        id="f-year">
+      <input type="hidden" name="edition"     id="f-edition">
+      <input type="hidden" name="description" id="f-description">
+      <input type="hidden" name="cover_url"   id="f-cover-url">
+
+      <!-- 설명 미리보기 (편집 가능) -->
+      <div>
+        <label class="block text-xs font-semibold text-gray-600 mb-1.5 uppercase tracking-wider">큐레이터 노트</label>
+        <textarea id="modal-desc-display" name="description_override" rows="3"
+          class="w-full text-sm text-gray-700 bg-gray-50 border border-gray-200 rounded-xl px-4 py-3
+                 focus:outline-none focus:ring-2 focus:ring-gray-900 focus:bg-white resize-none transition-all"
+          placeholder="책 소개 또는 큐레이터 노트를 입력하세요 (선택)"></textarea>
+      </div>
+
+      <!-- 컨디션 + 판본 -->
+      <div class="grid grid-cols-2 gap-4">
+        <div>
+          <label class="block text-xs font-semibold text-gray-600 mb-1.5 uppercase tracking-wider">컨디션</label>
+          <select name="condition" required
+            class="w-full text-sm bg-gray-50 border border-gray-200 rounded-xl px-4 py-3
+                   focus:outline-none focus:ring-2 focus:ring-gray-900 focus:bg-white transition-all">
+            <option value="Fine">Fine</option>
+            <option value="Very Good">Very Good</option>
+            <option value="Good" selected>Good</option>
+            <option value="Fair">Fair</option>
+            <option value="Poor">Poor</option>
+          </select>
+        </div>
+        <div>
+          <label class="block text-xs font-semibold text-gray-600 mb-1.5 uppercase tracking-wider">판본</label>
+          <input id="modal-edition-display" type="text" name="edition_override"
+            class="w-full text-sm bg-gray-50 border border-gray-200 rounded-xl px-4 py-3
+                   focus:outline-none focus:ring-2 focus:ring-gray-900 focus:bg-white transition-all"
+            placeholder="예: 초판, First Edition">
+        </div>
+      </div>
+
+      <!-- 가격 + 재고 -->
+      <div class="grid grid-cols-2 gap-4">
+        <div>
+          <label class="block text-xs font-semibold text-gray-600 mb-1.5 uppercase tracking-wider">가격 (₩)</label>
+          <div class="relative">
+            <div class="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none text-gray-400 text-sm">₩</div>
+            <input type="number" name="price" min="0" step="1000" required
+              class="w-full text-sm bg-gray-50 border border-gray-200 rounded-xl pl-8 pr-4 py-3
+                     focus:outline-none focus:ring-2 focus:ring-gray-900 focus:bg-white transition-all"
+              placeholder="50000">
+          </div>
+        </div>
+        <div>
+          <label class="block text-xs font-semibold text-gray-600 mb-1.5 uppercase tracking-wider">재고 수량</label>
+          <input type="number" name="stock_quantity" min="0" value="1" required
+            class="w-full text-sm bg-gray-50 border border-gray-200 rounded-xl px-4 py-3
+                   focus:outline-none focus:ring-2 focus:ring-gray-900 focus:bg-white transition-all">
+        </div>
+      </div>
+
+      <!-- 버튼 -->
+      <div class="flex gap-3 pt-2">
+        <button type="button" onclick="closeRegisterModal()"
+          class="flex-1 py-3 rounded-full border border-gray-200 text-gray-600 text-sm font-medium
+                 hover:bg-gray-50 transition-colors">
+          취소
+        </button>
+        <button type="submit"
+          class="flex-1 py-3 rounded-full bg-gray-900 text-white text-sm font-semibold
+                 hover:bg-black transition-colors flex items-center justify-center gap-2">
+          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/>
+          </svg>
+          스토어에 등록하기
+        </button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<script>
+const searchInput = document.getElementById('search-input');
+const searchBtn   = document.getElementById('search-btn');
+const resultsArea = document.getElementById('results-area');
+const resultsGrid = document.getElementById('results-grid');
+const resultsTitle = document.getElementById('results-title');
+const resultsCount = document.getElementById('results-count');
+const loading     = document.getElementById('loading');
+const noResults   = document.getElementById('no-results');
+
+// Enter 키 검색
+searchInput.addEventListener('keydown', e => { if (e.key === 'Enter') doSearch(); });
+searchBtn.addEventListener('click', doSearch);
+
+async function doSearch() {
+  const q = searchInput.value.trim();
+  if (!q) return;
+
+  // UI 리셋
+  resultsArea.classList.add('hidden');
+  noResults.classList.add('hidden');
+  document.getElementById('no-key-notice').classList.add('hidden');
+  loading.classList.remove('hidden');
+  resultsGrid.innerHTML = '';
+
+  try {
+    const res = await fetch(`/admin/search-books?q=${encodeURIComponent(q)}`);
+    const data = await res.json();
+    loading.classList.add('hidden');
+
+    // API Key 없음 안내
+    if (data.message === 'no_key') {
+      document.getElementById('no-key-notice').classList.remove('hidden');
+      return;
+    }
+
+    if (!data.items || data.items.length === 0) {
+      noResults.classList.remove('hidden');
+      return;
+    }
+
+    // 검색 소스 표시
+    const sourceLabel = {'kakao': '카카오 도서', 'naver': '네이버 도서', 'google': 'Google Books', 'openlibrary': 'Open Library'}[data.source] || '';
+    resultsTitle.textContent = `검색 결과${sourceLabel ? ' · ' + sourceLabel : ''}`;
+    resultsCount.textContent = `${data.items.length}건`;
+    resultsArea.classList.remove('hidden');
+
+    data.items.forEach(book => {
+      const card = document.createElement('div');
+      card.className = 'group cursor-pointer';
+      card.innerHTML = `
+        <div class="aspect-[2/3] mb-3 rounded-xl overflow-hidden bg-gray-100 shadow-sm
+                    group-hover:shadow-lg group-hover:-translate-y-1 transition-all duration-300 relative">
+          ${book.thumbnail
+            ? `<img src="${book.thumbnail}" alt="${book.title}"
+                    class="w-full h-full object-cover"
+                    onerror="this.parentElement.innerHTML='<div class=\\'w-full h-full bg-gradient-to-br from-gray-100 to-gray-300 flex items-center justify-center p-3 text-center\\'><span class=\\'font-serif text-gray-400 text-sm font-bold opacity-60\\'>${book.title.substring(0,2)}</span></div>'">`
+            : `<div class="w-full h-full bg-gradient-to-br from-gray-100 to-gray-300 flex items-center justify-center p-3 text-center">
+                 <span class="font-serif text-gray-400 text-sm font-bold opacity-60">${book.title.substring(0,2)}</span>
+               </div>`
+          }
+          <!-- 호버 오버레이 -->
+          <div class="absolute inset-0 bg-gray-900/0 group-hover:bg-gray-900/20 transition-all duration-300
+                      flex items-center justify-center">
+            <span class="opacity-0 group-hover:opacity-100 transition-opacity duration-300
+                         bg-white text-gray-900 text-xs font-bold px-3 py-1.5 rounded-full shadow-lg">
+              선택하기
+            </span>
+          </div>
+        </div>
+        <h3 class="text-xs font-semibold text-gray-900 leading-tight mb-0.5 line-clamp-2 group-hover:text-blue-600 transition-colors">${book.title}</h3>
+        <p class="text-xs text-gray-400 truncate">${book.author || ''}</p>
+        ${book.year ? `<p class="text-xs text-gray-300 mt-0.5">${book.year}</p>` : ''}
+      `;
+      card.addEventListener('click', () => openRegisterModal(book));
+      resultsGrid.appendChild(card);
+    });
+
+  } catch(err) {
+    loading.classList.add('hidden');
+    noResults.classList.remove('hidden');
+    console.error(err);
+  }
+}
+
+function openRegisterModal(book) {
+  // 숨겨진 필드 채우기
+  document.getElementById('f-title').value       = book.title || '';
+  document.getElementById('f-author').value      = book.author || '';
+  document.getElementById('f-year').value        = book.year || '';
+  document.getElementById('f-edition').value     = book.edition || '';
+  document.getElementById('f-description').value = book.description || '';
+  document.getElementById('f-cover-url').value   = book.thumbnail || '';
+
+  // 모달 미리보기
+  const coverEl = document.getElementById('modal-cover');
+  if (book.thumbnail) {
+    coverEl.src = book.thumbnail;
+    coverEl.onerror = () => { coverEl.src = ''; coverEl.classList.add('bg-gray-200'); };
+  } else {
+    coverEl.src = '';
+  }
+  document.getElementById('modal-title').textContent  = book.title || '';
+  document.getElementById('modal-author').textContent = book.author ? `by ${book.author}` : '';
+  document.getElementById('modal-year').textContent   = book.year ? `${book.year}년` : '';
+  document.getElementById('modal-isbn').textContent   = book.isbn ? `ISBN: ${book.isbn}` : '';
+
+  // 설명 / 판본 기본값
+  document.getElementById('modal-desc-display').value    = book.description || '';
+  document.getElementById('modal-edition-display').value = book.edition || '';
+
+  document.getElementById('register-modal').classList.remove('hidden');
+  document.body.style.overflow = 'hidden';
+}
+
+function closeRegisterModal() {
+  document.getElementById('register-modal').classList.add('hidden');
+  document.body.style.overflow = '';
+}
+
+document.addEventListener('keydown', e => { if (e.key === 'Escape') closeRegisterModal(); });
+</script>
+{% endblock %}

@@ -98,6 +98,21 @@ def create_app():
                             conn.execute(db.text("ALTER TABLE book ADD COLUMN image_data TEXT"))
                             conn.commit()
                         print("Migration complete: 'image_data' column added.")
+
+                    if 'genre' not in columns:
+                        print("Migrating: Adding 'genre' column to 'book' table...")
+                        with db.engine.connect() as conn:
+                            conn.execute(db.text("ALTER TABLE book ADD COLUMN genre VARCHAR(255)"))
+                            conn.commit()
+                        print("Migration complete: 'genre' column added.")
+
+                    user_columns = [col['name'] for col in inspector.get_columns('user')]
+                    if 'preferred_genres' not in user_columns:
+                        print("Migrating: Adding 'preferred_genres' column to 'user' table...")
+                        with db.engine.connect() as conn:
+                            conn.execute(db.text("ALTER TABLE \"user\" ADD COLUMN preferred_genres VARCHAR(255)"))
+                            conn.commit()
+                        print("Migration complete: 'preferred_genres' column added.")
                 except Exception as e:
                     print(f"Migration check failed (safe to ignore if app works): {e}")
                 # --------------------------------------------------------

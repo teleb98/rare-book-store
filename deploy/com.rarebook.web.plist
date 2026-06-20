@@ -11,6 +11,8 @@
     <string>127.0.0.1:8000</string>
     <string>--workers</string>
     <string>2</string>
+    <string>--timeout</string>
+    <string>120</string>
     <string>run:app</string>
   </array>
   <key>WorkingDirectory</key>

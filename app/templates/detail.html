@@ -1,5 +1,9 @@
 {% extends "base.html" %}
 
+{% block title %}{{ book.title }} | Rare Book Store{% endblock %}
+{% block og_title %}{{ book.title }} by {{ book.author }} | Rare Book Store{% endblock %}
+{% block meta_description %}{{ book.title }} ({{ book.author }}) — {{ book.description[:80] if book.description else '희귀 도서 콜렉션' }}{% endblock %}
+
 {% block content %}
 <div class="max-w-7xl mx-auto px-6 py-12 lg:py-20">
     <div class="grid grid-cols-1 lg:grid-cols-2 gap-12 lg:gap-20">
@@ -34,25 +38,25 @@
             <!-- Metadata Grid -->
             <div class="grid grid-cols-2 gap-6 mb-10 border-t border-b border-gray-100 py-6">
                 <div>
-                    <span class="block text-xs uppercase tracking-widest text-gray-400 font-semibold mb-1">Year</span>
+                    <span class="block text-xs uppercase tracking-widest text-gray-400 font-semibold mb-1">출판 연도</span>
                     <span class="text-lg font-medium text-gray-900">{{ book.year }}</span>
                 </div>
                 <div>
                     <span
-                        class="block text-xs uppercase tracking-widest text-gray-400 font-semibold mb-1">Condition</span>
+                        class="block text-xs uppercase tracking-widest text-gray-400 font-semibold mb-1">컨디션</span>
                     <span class="text-lg font-medium text-gray-900">{{ book.condition }}</span>
                 </div>
                 <div>
                     <span
-                        class="block text-xs uppercase tracking-widest text-gray-400 font-semibold mb-1">Edition</span>
+                        class="block text-xs uppercase tracking-widest text-gray-400 font-semibold mb-1">판본</span>
                     <span class="text-lg font-medium text-gray-900">{{ book.edition or '-' }}</span>
                 </div>
                 <div>
-                    <span class="block text-xs uppercase tracking-widest text-gray-400 font-semibold mb-1">Stock</span>
+                    <span class="block text-xs uppercase tracking-widest text-gray-400 font-semibold mb-1">재고</span>
                     {% if book.stock_quantity > 0 %}
-                    <span class="text-lg font-medium text-green-600">{{ book.stock_quantity }} Available</span>
+                    <span class="text-lg font-medium text-green-600">{{ book.stock_quantity }}권 보유 중</span>
                     {% else %}
-                    <span class="text-lg font-medium text-red-500">Sold Out</span>
+                    <span class="text-lg font-medium text-red-500">품절</span>
                     {% endif %}
                 </div>
             </div>
@@ -74,32 +78,185 @@
             {% endif %}
 
             <!-- Action -->
-            <div class="flex items-center justify-between">
-                <div class="text-3xl font-bold text-gray-900">
-                    ${{ "%.2f"|format(book.price) }}
+            <div class="mb-6">
+                <div class="flex items-center justify-between mb-5">
+                    <div class="text-3xl font-bold text-gray-900">
+                        &#8361;{{ "{:,.0f}".format(book.price) }}
+                    </div>
+
+                    {% if book.stock_quantity > 0 %}
+                    <form action="{{ url_for('main.purchase', id=book.id) }}" method="POST"
+                          onsubmit="return confirmPurchaseDetail('{{ book.title }}', '&#8361;{{ book.price | int | string }}')"
+                    >
+                        <button type="submit"
+                            class="bg-gray-900 hover:bg-black text-white px-8 py-4 rounded-full font-medium transition duration-300 transform hover:scale-105 shadow-lg flex items-center">
+                            지금 구매하기
+                        </button>
+                    </form>
+                    {% else %}
+                    <div class="flex flex-col items-end gap-3">
+                        <button disabled class="bg-gray-200 text-gray-400 px-8 py-4 rounded-full font-medium cursor-not-allowed">
+                            품절
+                        </button>
+                        <button onclick="document.getElementById('detail-notify-modal').classList.remove('hidden'); document.body.style.overflow='hidden';"
+                            class="text-sm font-medium text-amber-600 hover:text-amber-700 underline underline-offset-2 transition-colors">
+                            입고 알림 신청하기 →
+                        </button>
+                    </div>
+                    {% endif %}
                 </div>
 
-                {% if book.stock_quantity > 0 %}
-                <form action="{{ url_for('main.purchase', id=book.id) }}" method="POST">
-                    <button type="submit"
-                        class="bg-gray-900 hover:bg-black text-white px-8 py-4 rounded-full font-medium transition duration-300 transform hover:scale-105 shadow-lg flex items-center">
-                        Purchase Now
-                    </button>
-                </form>
-                {% else %}
-                <button disabled
-                    class="bg-gray-200 text-gray-400 px-8 py-4 rounded-full font-medium cursor-not-allowed">
-                    Out of Stock
-                </button>
-                {% endif %}
+                <!-- 신뢰 배지 -->
+                <div class="grid grid-cols-3 gap-3 pt-5 border-t border-gray-100">
+                    <div class="flex flex-col items-center text-center gap-1.5">
+                        <svg class="w-5 h-5 text-emerald-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"/>
+                        </svg>
+                        <span class="text-[10px] text-gray-500 leading-tight">진품 보증<br>불일치 시 환불</span>
+                    </div>
+                    <div class="flex flex-col items-center text-center gap-1.5">
+                        <svg class="w-5 h-5 text-blue-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                d="M5 8h14M5 8a2 2 0 110-4h14a2 2 0 110 4M5 8v10a2 2 0 002 2h10a2 2 0 002-2V8m-9 4h4"/>
+                        </svg>
+                        <span class="text-[10px] text-gray-500 leading-tight">1–3 영업일<br>안전 포장 발송</span>
+                    </div>
+                    <div class="flex flex-col items-center text-center gap-1.5">
+                        <svg class="w-5 h-5 text-amber-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                d="M16 15v-1a4 4 0 00-4-4H8m0 0l3 3m-3-3l3-3m9 14V5a2 2 0 00-2-2H6a2 2 0 00-2 2v16l4-2 4 2 4-2 4 2z"/>
+                        </svg>
+                        <span class="text-[10px] text-gray-500 leading-tight">7일 이내<br>반품 가능</span>
+                    </div>
+                </div>
             </div>
         </div>
+    </div>
+
+    <!-- 품절 입고 알림 모달 (detail 전용) -->
+    <div id="detail-notify-modal" class="hidden fixed inset-0 z-[200] flex items-center justify-center">
+        <div class="absolute inset-0 bg-black/40 backdrop-blur-sm"
+             onclick="document.getElementById('detail-notify-modal').classList.add('hidden'); document.body.style.overflow='';"></div>
+        <div class="relative bg-white rounded-3xl shadow-2xl mx-4 max-w-sm w-full z-10 p-8">
+            <div class="text-center mb-6">
+                <div class="w-12 h-12 bg-amber-50 rounded-full flex items-center justify-center mx-auto mb-4">
+                    <svg class="w-6 h-6 text-amber-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                            d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9"/>
+                    </svg>
+                </div>
+                <h3 class="text-lg font-bold text-gray-900 mb-1">입고 알림 신청</h3>
+                <p class="text-gray-500 text-sm font-serif italic mb-1">{{ book.title }}</p>
+                <p class="text-xs text-gray-400">입고 시 이메일로 알려드립니다.</p>
+            </div>
+            <form action="{{ url_for('main.notify_request') }}" method="POST" class="space-y-4">
+                <input type="hidden" name="book_id" value="{{ book.id }}">
+                <div>
+                    <label class="block text-xs font-semibold text-gray-600 mb-1.5 uppercase tracking-wider">이름</label>
+                    <input type="text" name="name" required placeholder="홍길동"
+                        class="w-full text-sm bg-gray-50 border border-gray-200 rounded-xl px-4 py-3
+                               focus:outline-none focus:ring-2 focus:ring-gray-900 focus:bg-white transition-all">
+                </div>
+                <div>
+                    <label class="block text-xs font-semibold text-gray-600 mb-1.5 uppercase tracking-wider">이메일</label>
+                    <input type="email" name="email" required placeholder="email@example.com"
+                        class="w-full text-sm bg-gray-50 border border-gray-200 rounded-xl px-4 py-3
+                               focus:outline-none focus:ring-2 focus:ring-gray-900 focus:bg-white transition-all">
+                </div>
+                <div class="flex gap-3 pt-2">
+                    <button type="button"
+                        onclick="document.getElementById('detail-notify-modal').classList.add('hidden'); document.body.style.overflow='';"
+                        class="flex-1 py-3 rounded-full border border-gray-200 text-gray-600 text-sm font-medium hover:bg-gray-50 transition-colors">
+                        취소
+                    </button>
+                    <button type="submit"
+                        class="flex-1 py-3 rounded-full bg-amber-500 text-white text-sm font-semibold hover:bg-amber-600 transition-colors">
+                        신청하기
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- 평점 및 리뷰 -->
+    <div class="mt-20 border-t border-gray-200 pt-16">
+        <div class="flex items-center justify-between mb-8 flex-wrap gap-3">
+            <h2 class="text-3xl font-serif font-bold text-gray-900">평점 및 리뷰</h2>
+            {% if avg_rating %}
+            <div class="flex items-center gap-2">
+                <div class="flex">
+                    {% for i in range(1, 6) %}
+                    <svg class="w-5 h-5 {{ 'text-amber-400' if i <= avg_rating_floor else 'text-gray-200' }}" fill="currentColor" viewBox="0 0 24 24">
+                        <path d="M11.48 3.499a.562.562 0 011.04 0l2.125 5.111a.563.563 0 00.475.345l5.518.442c.499.04.701.663.321.988l-4.204 3.602a.563.563 0 00-.182.557l1.285 5.385a.562.562 0 01-.84.61l-4.725-2.885a.563.563 0 00-.586 0L6.982 20.54a.562.562 0 01-.84-.61l1.285-5.386a.562.562 0 00-.182-.557l-4.204-3.602a.563.563 0 01.321-.988l5.518-.442a.563.563 0 00.475-.345L11.48 3.5z"/>
+                    </svg>
+                    {% endfor %}
+                </div>
+                <span class="text-2xl font-bold text-gray-900">{{ avg_rating }}</span>
+                <span class="text-sm text-gray-400">/ 5.0 ({{ review_count }}개 리뷰)</span>
+            </div>
+            {% else %}
+            <span class="text-sm text-gray-400">아직 리뷰가 없습니다</span>
+            {% endif %}
+        </div>
+
+        <!-- 리뷰 작성/수정 -->
+        {% if session.get('user_id') %}
+        <form action="{{ url_for('main.submit_review', id=book.id) }}" method="POST" class="bg-gray-50 rounded-2xl p-6 mb-10">
+            <p class="text-sm font-semibold text-gray-700 mb-3">{{ '내 리뷰 수정하기' if my_review else '리뷰 작성하기' }}</p>
+            <input type="hidden" name="rating" id="rating-input" value="{{ my_review.rating if my_review else '' }}">
+            <div class="flex items-center gap-1 mb-4">
+                <button type="button" data-value="0" id="zero-star-btn"
+                    class="text-xs text-gray-400 hover:text-gray-600 mr-2 underline underline-offset-2">0점</button>
+                {% for i in range(1, 6) %}
+                <button type="button" data-value="{{ i }}" class="star-btn">
+                    <svg class="w-7 h-7 star-icon {{ 'text-amber-400' if my_review and my_review.rating >= i else 'text-gray-300' }}" fill="currentColor" viewBox="0 0 24 24">
+                        <path d="M11.48 3.499a.562.562 0 011.04 0l2.125 5.111a.563.563 0 00.475.345l5.518.442c.499.04.701.663.321.988l-4.204 3.602a.563.563 0 00-.182.557l1.285 5.385a.562.562 0 01-.84.61l-4.725-2.885a.563.563 0 00-.586 0L6.982 20.54a.562.562 0 01-.84-.61l1.285-5.386a.562.562 0 00-.182-.557l-4.204-3.602a.563.563 0 01.321-.988l5.518-.442a.563.563 0 00.475-.345L11.48 3.5z"/>
+                    </svg>
+                </button>
+                {% endfor %}
+            </div>
+            <textarea name="comment" rows="3" placeholder="이 도서에 대한 생각을 남겨주세요 (선택)"
+                class="w-full text-sm bg-white border border-gray-200 rounded-xl px-4 py-3 mb-4 focus:outline-none focus:ring-2 focus:ring-gray-900 transition-all">{{ my_review.comment if my_review else '' }}</textarea>
+            <button type="submit" class="bg-gray-900 hover:bg-black text-white text-sm font-semibold px-6 py-3 rounded-full transition-colors">
+                {{ '리뷰 수정하기' if my_review else '리뷰 등록하기' }}
+            </button>
+        </form>
+        {% else %}
+        <div class="bg-gray-50 rounded-2xl p-6 mb-10 text-center text-sm text-gray-500">
+            <a href="{{ url_for('main.member_login') }}" class="text-blue-600 underline">로그인</a> 후 평점과 리뷰를 남길 수 있습니다.
+        </div>
+        {% endif %}
+
+        <!-- 리뷰 목록 -->
+        {% if reviews %}
+        <div class="space-y-6">
+            {% for r in reviews %}
+            <div class="border-b border-gray-100 pb-6">
+                <div class="flex items-center gap-2 mb-1">
+                    <div class="flex">
+                        {% for i in range(1, 6) %}
+                        <svg class="w-4 h-4 {{ 'text-amber-400' if r.rating >= i else 'text-gray-200' }}" fill="currentColor" viewBox="0 0 24 24">
+                            <path d="M11.48 3.499a.562.562 0 011.04 0l2.125 5.111a.563.563 0 00.475.345l5.518.442c.499.04.701.663.321.988l-4.204 3.602a.563.563 0 00-.182.557l1.285 5.385a.562.562 0 01-.84.61l-4.725-2.885a.563.563 0 00-.586 0L6.982 20.54a.562.562 0 01-.84-.61l1.285-5.386a.562.562 0 00-.182-.557l-4.204-3.602a.563.563 0 01.321-.988l5.518-.442a.563.563 0 00.475-.345L11.48 3.5z"/>
+                        </svg>
+                        {% endfor %}
+                    </div>
+                    <span class="text-sm font-semibold text-gray-900">{{ r.user.name or '회원' }}</span>
+                    <span class="text-xs text-gray-400">{{ r.created_at.strftime('%Y.%m.%d') }}</span>
+                </div>
+                {% if r.comment %}
+                <p class="text-sm text-gray-600 leading-relaxed">{{ r.comment }}</p>
+                {% endif %}
+            </div>
+            {% endfor %}
+        </div>
+        {% endif %}
     </div>
 
     <!-- Similar Books Section -->
     {% if similar_books %}
     <div class="mt-20 border-t border-gray-200 pt-16">
-        <h2 class="text-3xl font-serif font-bold text-gray-900 mb-10 text-center">You Might Also Like</h2>
+        <h2 class="text-3xl font-serif font-bold text-gray-900 mb-10 text-center">이런 도서는 어때세요?</h2>
         <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8">
             {% for sim_book in similar_books %}
             <a href="{{ url_for('main.book_detail', id=sim_book.id) }}" class="group block">
@@ -121,7 +278,7 @@
                 <h3 class="text-lg font-bold text-gray-900 group-hover:text-blue-900 transition mb-1 line-clamp-1">{{
                     sim_book.title }}</h3>
                 <p class="text-sm text-gray-600 mb-2 font-serif italic">{{ sim_book.author }}</p>
-                <p class="text-sm font-semibold text-gray-900">${{ "%.2f"|format(sim_book.price) }}</p>
+                <p class="text-sm font-semibold text-gray-900">&#8361;{{ "{:,.0f}".format(sim_book.price) }}</p>
             </a>
             {% endfor %}
         </div>
@@ -131,7 +288,7 @@
     <!-- Web Recommendations Section -->
     {% if web_recommendations %}
     <div class="mt-20 border-t border-gray-200 pt-16 mb-20">
-        <h2 class="text-3xl font-serif font-bold text-gray-900 mb-10 text-center">Other Books by the Same Author</h2>
+        <h2 class="text-3xl font-serif font-bold text-gray-900 mb-10 text-center">같은 저자의 다른 작품</h2>
         <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8">
             {% for web_book in web_recommendations %}
             <a href="{{ web_book.link }}" target="_blank" rel="noopener noreferrer" class="group block">
@@ -163,4 +320,88 @@
     {% endif %}
 
 </div>
+
+<!-- 구매 확인 모달 (detail) -->
+<div id="purchase-modal-detail" class="hidden fixed inset-0 z-[100] flex items-center justify-center">
+    <div class="absolute inset-0 bg-black/40 backdrop-blur-sm" onclick="closeModalDetail()"></div>
+    <div class="relative bg-white rounded-3xl shadow-2xl p-8 mx-4 max-w-sm w-full z-10">
+        <div class="text-center">
+            <div class="w-14 h-14 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                <svg class="w-7 h-7 text-gray-700" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 11-4 0 2 2 0 014 0z"/>
+                </svg>
+            </div>
+            <h3 class="text-xl font-bold text-gray-900 mb-1">구매 확인</h3>
+            <p id="modal-detail-title" class="text-gray-500 text-sm mb-1 font-serif italic"></p>
+            <p id="modal-detail-price" class="text-2xl font-bold text-gray-900 mb-6"></p>
+            <p class="text-xs text-gray-400 mb-8">이 도서를 구매하시겠습니까?<br>확인 후 재고가 감소됩니다.</p>
+            <div class="flex gap-3">
+                <button onclick="closeModalDetail()"
+                    class="flex-1 py-3 rounded-full border border-gray-200 text-gray-600 text-sm font-medium hover:bg-gray-50 transition-colors">
+                    취소
+                </button>
+                <button id="modal-detail-confirm-btn"
+                    class="flex-1 py-3 rounded-full bg-gray-900 text-white text-sm font-medium hover:bg-black transition-colors">
+                    구매하기
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    let _detailForm = null;
+
+    function confirmPurchaseDetail(title, price) {
+        document.getElementById('modal-detail-title').textContent = title;
+        document.getElementById('modal-detail-price').textContent = price;
+        _detailForm = event.target;
+        document.getElementById('purchase-modal-detail').classList.remove('hidden');
+        return false;
+    }
+
+    document.getElementById('modal-detail-confirm-btn').addEventListener('click', function () {
+        if (_detailForm) {
+            closeModalDetail();
+            _detailForm.submit();
+        }
+    });
+
+    function closeModalDetail() {
+        document.getElementById('purchase-modal-detail').classList.add('hidden');
+        _detailForm = null;
+    }
+
+    document.addEventListener('keydown', function (e) {
+        if (e.key === 'Escape') closeModalDetail();
+    });
+
+    // 평점 입력 위젯: 별 클릭 시 hidden input에 값 반영 + 채워진 별 표시
+    var ratingInput = document.getElementById('rating-input');
+    var zeroBtn = document.getElementById('zero-star-btn');
+    var starButtons = document.querySelectorAll('.star-btn');
+
+    function applyRating(value) {
+        ratingInput.value = value;
+        starButtons.forEach(function (btn, idx) {
+            var icon = btn.querySelector('.star-icon');
+            if (idx < value) {
+                icon.classList.add('text-amber-400');
+                icon.classList.remove('text-gray-300');
+            } else {
+                icon.classList.remove('text-amber-400');
+                icon.classList.add('text-gray-300');
+            }
+        });
+    }
+
+    starButtons.forEach(function (btn) {
+        btn.addEventListener('click', function () {
+            applyRating(parseInt(btn.dataset.value, 10));
+        });
+    });
+    if (zeroBtn) {
+        zeroBtn.addEventListener('click', function () { applyRating(0); });
+    }
+</script>
 {% endblock %}

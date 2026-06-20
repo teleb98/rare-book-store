@@ -3,20 +3,54 @@
 {% block content %}
 <div class="flex justify-between items-center mb-8">
     <h1 class="text-3xl font-serif font-bold text-gray-800">관리자 대시보드</h1>
-    <div class="flex gap-4">
+    <div class="flex gap-3">
         <a href="{{ url_for('main.logout') }}"
-            class="bg-gray-200 hover:bg-gray-300 text-gray-700 font-bold py-2 px-4 rounded shadow transition duration-200 flex items-center">
+            class="bg-gray-100 hover:bg-gray-200 text-gray-700 font-semibold py-2 px-4 rounded-xl transition duration-200 flex items-center text-sm">
             로그아웃
         </a>
+        <a href="{{ url_for('main.admin_orders') }}"
+            class="bg-emerald-600 hover:bg-emerald-700 text-white font-semibold py-2 px-4 rounded-xl shadow transition duration-200 flex items-center gap-2 text-sm">
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                    d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01"/>
+            </svg>
+            주문 관리
+        </a>
+        <a href="{{ url_for('main.admin_restock_requests') }}"
+            class="bg-amber-500 hover:bg-amber-600 text-white font-semibold py-2 px-4 rounded-xl shadow transition duration-200 flex items-center gap-2 text-sm">
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                    d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9"/>
+            </svg>
+            입고 알림
+        </a>
+        <a href="{{ url_for('main.admin_search') }}"
+            class="bg-blue-600 hover:bg-blue-700 text-white font-semibold py-2 px-4 rounded-xl shadow transition duration-200 flex items-center gap-2 text-sm">
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                    d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/>
+            </svg>
+            검색으로 등록
+        </a>
         <a href="{{ url_for('main.admin_add') }}"
-            class="bg-stone-900 hover:bg-stone-700 text-white font-bold py-2 px-4 rounded shadow transition duration-200 flex items-center">
-            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-2" viewBox="0 0 20 20" fill="currentColor">
+            class="bg-gray-900 hover:bg-black text-white font-semibold py-2 px-4 rounded-xl shadow transition duration-200 flex items-center gap-2 text-sm">
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" viewBox="0 0 20 20" fill="currentColor">
                 <path fill-rule="evenodd"
                     d="M10 3a1 1 0 011 1v5h5a1 1 0 110 2h-5v5a1 1 0 11-2 0v-5H4a1 1 0 110-2h5V4a1 1 0 011-1z"
                     clip-rule="evenodd" />
             </svg>
-            새 도서 추가
+            이미지로 AI 등록
         </a>
+        <form action="{{ url_for('main.admin_tag_genres') }}" method="POST">
+            <button type="submit"
+                class="bg-amber-100 hover:bg-amber-200 text-amber-800 font-semibold py-2 px-4 rounded-xl shadow-sm transition duration-200 flex items-center gap-2 text-sm">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                        d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A1.994 1.994 0 013 12V7a4 4 0 014-4z"/>
+                </svg>
+                장르 자동 태깅 실행
+            </button>
+        </form>
     </div>
 </div>
 
@@ -27,6 +61,7 @@
                 <th class="py-3 px-6 text-left">ID</th>
                 <th class="py-3 px-6 text-left">제목 / 저자</th>
                 <th class="py-3 px-6 text-left">상세 정보</th>
+                <th class="py-3 px-6 text-left">장르</th>
                 <th class="py-3 px-6 text-center">가격</th>
                 <th class="py-3 px-6 text-center">재고</th>
                 <th class="py-3 px-6 text-center">작업</th>
@@ -51,7 +86,18 @@
                     <p class="text-stone-500 text-xs">{{ book.condition }}</p>
                 </td>
                 <td class="px-5 py-5 border-b border-stone-200 bg-white text-sm">
-                    <p class="text-stone-900 whitespace-no-wrap font-bold">${{ "{:,.0f}".format(book.price) }}</p>
+                    {% if book.genre %}
+                    <div class="flex flex-wrap gap-1">
+                        {% for g in book.genre.split(',') %}
+                        <span class="text-[10px] font-semibold px-2 py-0.5 rounded-full bg-amber-50 text-amber-700 border border-amber-100">{{ g }}</span>
+                        {% endfor %}
+                    </div>
+                    {% else %}
+                    <span class="text-xs text-stone-300">미태깅</span>
+                    {% endif %}
+                </td>
+                <td class="px-5 py-5 border-b border-stone-200 bg-white text-sm">
+                    <p class="text-stone-900 whitespace-no-wrap font-bold">&#8361;{{ "{:,.0f}".format(book.price) }}</p>
                 </td>
                 <td class="px-5 py-5 border-b border-stone-200 bg-white text-sm">
                     {% if book.stock_quantity > 0 %}
@@ -76,18 +122,16 @@
                                     d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
                             </svg>
                         </a>
-                        <form action="{{ url_for('main.admin_delete', id=book.id) }}" method="POST"
-                            onsubmit="return confirm('정말 삭제하시겠습니까?');" class="inline">
-                            <button type="submit"
-                                class="w-4 transform hover:text-red-500 hover:scale-110 transition cursor-pointer border-none bg-transparent"
-                                title="삭제">
-                                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"
-                                    stroke="currentColor">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                        d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                                </svg>
-                            </button>
-                        </form>
+                        <button type="button"
+                            class="delete-btn w-4 transform hover:text-red-500 hover:scale-110 transition cursor-pointer border-none bg-transparent"
+                            data-book-id="{{ book.id }}" data-book-title="{{ book.title }}"
+                            title="삭제">
+                            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"
+                                stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                    d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                            </svg>
+                        </button>
                     </div>
                 </td>
             </tr>
@@ -95,4 +139,65 @@
         </tbody>
     </table>
 </div>
+
+<!-- ============================================================
+     삭제 확인 모달 — 브라우저 기본 confirm() 대신 사용
+     (일부 인앱 브라우저에서 confirm()이 차단되어 삭제가 진행되지 않는 문제 해결)
+============================================================ -->
+<div id="delete-modal" class="hidden fixed inset-0 z-[200] flex items-center justify-center">
+    <div class="absolute inset-0 bg-black/40 backdrop-blur-sm" onclick="closeDeleteModal()"></div>
+    <div class="relative bg-white rounded-3xl shadow-2xl mx-4 max-w-sm w-full z-10 p-8">
+        <div class="text-center mb-6">
+            <div class="w-12 h-12 bg-red-50 rounded-full flex items-center justify-center mx-auto mb-4">
+                <svg class="w-6 h-6 text-red-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                        d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                </svg>
+            </div>
+            <h3 class="text-lg font-bold text-gray-900 mb-1">도서를 삭제하시겠습니까?</h3>
+            <p id="delete-book-title" class="text-gray-500 text-sm font-serif italic mb-1"></p>
+            <p class="text-xs text-gray-400">이 작업은 되돌릴 수 없습니다.</p>
+        </div>
+        <div class="flex gap-3">
+            <button type="button" onclick="closeDeleteModal()"
+                class="flex-1 py-3 rounded-full border border-gray-200 text-gray-600 text-sm font-medium hover:bg-gray-50 transition-colors">
+                취소
+            </button>
+            <button type="button" id="delete-confirm-btn"
+                class="flex-1 py-3 rounded-full bg-red-600 text-white text-sm font-semibold hover:bg-red-700 transition-colors">
+                삭제
+            </button>
+        </div>
+    </div>
+</div>
+
+<form id="delete-form" method="POST" class="hidden"></form>
+
+<script>
+function openDeleteModal(bookId, bookTitle) {
+    document.getElementById('delete-book-title').textContent = bookTitle;
+    document.getElementById('delete-form').action = '/admin/delete/' + bookId;
+    document.getElementById('delete-modal').classList.remove('hidden');
+    document.body.style.overflow = 'hidden';
+}
+
+document.querySelectorAll('.delete-btn').forEach(function (btn) {
+    btn.addEventListener('click', function () {
+        openDeleteModal(btn.dataset.bookId, btn.dataset.bookTitle);
+    });
+});
+
+function closeDeleteModal() {
+    document.getElementById('delete-modal').classList.add('hidden');
+    document.body.style.overflow = '';
+}
+
+document.getElementById('delete-confirm-btn').addEventListener('click', function () {
+    document.getElementById('delete-form').submit();
+});
+
+document.addEventListener('keydown', function (e) {
+    if (e.key === 'Escape') closeDeleteModal();
+});
+</script>
 {% endblock %}

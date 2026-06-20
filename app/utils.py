@@ -1,8 +1,72 @@
 import requests
+import os
+import json
+from urllib.parse import urlparse, parse_qs, unquote
 from typing import List, Dict, Optional
+
+
+def upgrade_cover_url(url: Optional[str]) -> Optional[str]:
+    """저해상도 썸네일 URL을 고해상도 원본 URL로 변환한다.
+
+    - 카카오: search1.kakaocdn.net/thumb/R120x174.../?fname=<원본> 형태 → fname 원본 추출(120px→약 458px)
+    - 그 외(네이버/구글/오픈라이브러리): 이미 충분한 해상도라 그대로 반환
+    """
+    if not url:
+        return url
+    try:
+        if 'kakaocdn.net' in url and 'fname=' in url:
+            fname = parse_qs(urlparse(url).query).get('fname', [None])[0]
+            if fname:
+                return unquote(fname)
+    except Exception:
+        pass
+    return url
+
 
 # User-Agent header for API requests (best practice for Open Library)
 USER_AGENT = "RareBookStore/1.0 (Flask-based rare book inventory app)"
+
+# 도서 장르 자동 태깅용 분류 체계
+GENRE_TAXONOMY = [
+    "고전문학", "현대소설", "인문/교양", "과학/대중과학",
+    "역사", "에세이/철학", "예술/디자인", "경제/경영", "기타"
+]
+
+
+def auto_tag_genre(title: str, author: str, description: Optional[str]) -> List[str]:
+    """
+    Gemini를 사용해 책의 제목/저자/설명으로 장르를 1~2개 자동 분류한다.
+    GOOGLE_API_KEY가 없거나 호출이 실패하면 빈 리스트를 반환한다 (호출부에서 '기타' 등 기본값 처리).
+    """
+    api_key = os.environ.get("GOOGLE_API_KEY")
+    if not api_key:
+        return []
+
+    import google.generativeai as genai
+    genai.configure(api_key=api_key)
+
+    prompt = f"""다음 책을 아래 장르 목록 중 1~2개로 분류하세요. 목록에 있는 표기를 정확히 그대로 사용하고, 새로운 장르명을 만들지 마세요.
+장르 목록: {GENRE_TAXONOMY}
+
+제목: {title}
+저자: {author}
+설명: {description or '(설명 없음)'}
+
+반드시 아래와 같은 JSON 배열 형식으로만 응답하세요. 다른 설명 텍스트는 포함하지 마세요.
+예: ["고전문학"]"""
+
+    try:
+        model = genai.GenerativeModel('gemini-flash-latest')
+        response = model.generate_content(prompt)
+        json_text = response.text.replace('```json', '').replace('```', '').strip()
+        genres = json.loads(json_text)
+        if not isinstance(genres, list):
+            return []
+        valid = [g for g in genres if g in GENRE_TAXONOMY][:2]
+        return valid or ["기타"]
+    except Exception as e:
+        print(f"장르 자동 태깅 실패 ('{title}'): {e}")
+        return []
 
 def search_open_library(title: str, author: str) -> List[Dict[str, Optional[str]]]:
     """

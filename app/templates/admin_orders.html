@@ -1,0 +1,98 @@
+{% extends "base.html" %}
+{% block title %}주문 관리 | 관리자{% endblock %}
+
+{% macro status_badge(status) %}
+    {% set styles = {
+        'received':  'bg-blue-50 text-blue-700',
+        'contacted': 'bg-violet-50 text-violet-700',
+        'shipped':   'bg-amber-50 text-amber-700',
+        'completed': 'bg-emerald-50 text-emerald-700',
+        'cancelled': 'bg-gray-100 text-gray-400'
+    } %}
+    <span class="text-[11px] font-bold px-2.5 py-1 rounded-full {{ styles.get(status, 'bg-gray-100 text-gray-500') }}">
+        {{ status_labels.get(status, status) }}
+    </span>
+{% endmacro %}
+
+{% block content %}
+<div class="flex justify-between items-center mb-8">
+    <h1 class="text-3xl font-serif font-bold text-gray-800">주문 관리</h1>
+    <a href="{{ url_for('main.admin') }}" class="text-sm font-medium text-gray-500 hover:text-gray-900 transition-colors flex items-center gap-1">
+        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/>
+        </svg>
+        대시보드로 돌아가기
+    </a>
+</div>
+
+<!-- 상태 필터 탭 -->
+<div class="flex flex-wrap gap-2 mb-6">
+    <a href="{{ url_for('main.admin_orders') }}"
+       class="text-xs font-semibold px-3 py-2 rounded-full transition-colors {{ 'bg-gray-900 text-white' if not status_filter else 'bg-gray-100 text-gray-600 hover:bg-gray-200' }}">
+        전체 ({{ counts.values()|sum }})
+    </a>
+    {% for s in status_flow %}
+    <a href="{{ url_for('main.admin_orders', status=s) }}"
+       class="text-xs font-semibold px-3 py-2 rounded-full transition-colors {{ 'bg-gray-900 text-white' if status_filter == s else 'bg-gray-100 text-gray-600 hover:bg-gray-200' }}">
+        {{ status_labels[s] }} ({{ counts[s] }})
+    </a>
+    {% endfor %}
+</div>
+
+{% if not orders %}
+<div class="py-24 text-center bg-white rounded-2xl border border-gray-100">
+    <p class="text-gray-400">해당하는 주문이 없습니다.</p>
+</div>
+{% else %}
+<div class="overflow-x-auto bg-white rounded-lg shadow border border-stone-200">
+    <table class="min-w-full leading-normal">
+        <thead class="bg-stone-100 text-stone-600 uppercase text-xs">
+            <tr>
+                <th class="py-3 px-5 text-left">주문번호</th>
+                <th class="py-3 px-5 text-left">도서</th>
+                <th class="py-3 px-5 text-left">주문 회원</th>
+                <th class="py-3 px-5 text-center">가격</th>
+                <th class="py-3 px-5 text-center">주문일</th>
+                <th class="py-3 px-5 text-center">상태</th>
+                <th class="py-3 px-5 text-center">상태 변경</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for order in orders %}
+            <tr>
+                <td class="px-5 py-4 border-b border-stone-200 text-sm font-mono text-stone-600">#{{ '%06d'|format(order.id) }}</td>
+                <td class="px-5 py-4 border-b border-stone-200 text-sm">
+                    {% if order.book_id %}
+                    <a href="{{ url_for('main.book_detail', id=order.book_id) }}"
+                       class="text-stone-900 font-semibold font-serif hover:text-blue-600">{{ order.book_title }}</a>
+                    {% else %}
+                    <span class="text-stone-900 font-semibold font-serif">{{ order.book_title }}</span>
+                    <span class="block text-[10px] text-gray-400">(삭제된 도서)</span>
+                    {% endif %}
+                </td>
+                <td class="px-5 py-4 border-b border-stone-200 text-sm">
+                    <p class="text-stone-900">{{ order.user.name or '회원' }}</p>
+                    <p class="text-stone-400 text-xs">{{ order.user.email or '이메일 없음' }}</p>
+                </td>
+                <td class="px-5 py-4 border-b border-stone-200 text-sm text-center font-bold text-stone-900">&#8361;{{ "{:,.0f}".format(order.price) }}</td>
+                <td class="px-5 py-4 border-b border-stone-200 text-sm text-center text-stone-500">{{ order.created_at.strftime('%Y.%m.%d') }}</td>
+                <td class="px-5 py-4 border-b border-stone-200 text-sm text-center">{{ status_badge(order.status) }}</td>
+                <td class="px-5 py-4 border-b border-stone-200 text-sm text-center">
+                    <form action="{{ url_for('main.admin_order_status', id=order.id) }}" method="POST" class="flex items-center gap-2 justify-center">
+                        <input type="hidden" name="return_status" value="{{ status_filter }}">
+                        <select name="status" class="text-xs border border-gray-200 rounded-lg px-2 py-1.5 focus:outline-none focus:ring-1 focus:ring-gray-900">
+                            {% for s in status_flow %}
+                            <option value="{{ s }}" {% if order.status == s %}selected{% endif %}>{{ status_labels[s] }}</option>
+                            {% endfor %}
+                        </select>
+                        <button type="submit" class="text-xs bg-gray-900 hover:bg-black text-white font-semibold px-3 py-1.5 rounded-lg transition-colors">변경</button>
+                    </form>
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+<p class="mt-4 text-xs text-gray-400">※ 주문을 '주문 취소'로 변경하면 해당 도서의 재고가 자동으로 1 복원됩니다 (도서가 존재하는 경우).</p>
+{% endif %}
+{% endblock %}

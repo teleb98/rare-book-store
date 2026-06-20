@@ -1,0 +1,52 @@
+{% extends "base.html" %}
+{% block title %}선호 장르 선택 | Rare Book Store{% endblock %}
+
+{% block content %}
+<div class="max-w-lg mx-auto px-6 py-20">
+    <div class="text-center mb-10">
+        <h1 class="text-3xl font-serif font-bold text-gray-900 mb-2">어떤 책을 좋아하세요?</h1>
+        <p class="text-sm text-gray-500">선호하는 장르를 골라주시면, 메인 화면을 맞춤으로 구성해드려요.<br>나중에 언제든 바꿀 수 있습니다.</p>
+    </div>
+
+    <form method="POST">
+        <div class="grid grid-cols-2 gap-3 mb-8">
+            {% for g in genre_taxonomy %}
+            <label class="genre-option flex items-center justify-center text-center gap-2 px-4 py-4 rounded-xl border text-sm font-medium cursor-pointer transition-all
+                {% if g in current_genres %}border-gray-900 bg-gray-900 text-white{% else %}border-gray-200 text-gray-700 hover:border-gray-400{% endif %}">
+                <input type="checkbox" name="genres" value="{{ g }}" class="hidden genre-checkbox" {% if g in current_genres %}checked{% endif %}>
+                {{ g }}
+            </label>
+            {% endfor %}
+        </div>
+
+        <div class="flex gap-3">
+            <button type="submit" name="action" value="skip"
+                class="flex-1 py-3.5 rounded-full border border-gray-200 text-gray-500 text-sm font-medium hover:bg-gray-50 transition-colors">
+                건너뛰기
+            </button>
+            <button type="submit" name="action" value="save"
+                class="flex-1 py-3.5 rounded-full bg-gray-900 text-white text-sm font-semibold hover:bg-black transition-colors">
+                선택 완료
+            </button>
+        </div>
+    </form>
+</div>
+
+<script>
+document.querySelectorAll('.genre-option').forEach(function (label) {
+    label.addEventListener('click', function (e) {
+        // 체크박스 토글은 브라우저 기본 동작에 맡기고, 여기서는 스타일만 다음 틱에 동기화
+        setTimeout(function () {
+            var checkbox = label.querySelector('.genre-checkbox');
+            if (checkbox.checked) {
+                label.classList.add('border-gray-900', 'bg-gray-900', 'text-white');
+                label.classList.remove('border-gray-200', 'text-gray-700');
+            } else {
+                label.classList.remove('border-gray-900', 'bg-gray-900', 'text-white');
+                label.classList.add('border-gray-200', 'text-gray-700');
+            }
+        }, 0);
+    });
+});
+</script>
+{% endblock %}
