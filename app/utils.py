@@ -23,6 +23,30 @@ def upgrade_cover_url(url: Optional[str]) -> Optional[str]:
     return url
 
 
+# 표지 이미지를 서버에서 직접 다운로드할 때 허용하는 호스트 (카카오/네이버/구글북스/오픈라이브러리 CDN만 허용).
+# 관리자가 폼으로 임의 URL을 보내 서버가 내부망/클라우드 메타데이터 등으로 요청을 보내는 SSRF를 막기 위함.
+ALLOWED_COVER_IMAGE_HOSTS = (
+    'daumcdn.net', 'kakaocdn.net',          # 카카오
+    'pstatic.net',                          # 네이버
+    'googleusercontent.com', 'books.google.com', 'google.com',  # 구글 북스
+    'openlibrary.org',                      # 오픈라이브러리
+)
+
+
+def is_allowed_cover_image_url(url: Optional[str]) -> bool:
+    """표지 이미지 URL이 신뢰하는 도서 검색 제공자의 CDN 호스트인지 확인한다 (SSRF 방지)."""
+    if not url:
+        return False
+    try:
+        parsed = urlparse(url)
+        if parsed.scheme not in ('http', 'https'):
+            return False
+        host = (parsed.hostname or '').lower()
+        return any(host == h or host.endswith('.' + h) for h in ALLOWED_COVER_IMAGE_HOSTS)
+    except Exception:
+        return False
+
+
 # User-Agent header for API requests (best practice for Open Library)
 USER_AGENT = "RareBookStore/1.0 (Flask-based rare book inventory app)"
 

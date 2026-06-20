@@ -1,0 +1,72 @@
+{% extends "base.html" %}
+{% block title %}마이페이지 | Rare Book Store{% endblock %}
+
+{% macro status_badge(status) %}
+    {% set styles = {
+        'received':  'bg-blue-50 text-blue-700',
+        'contacted': 'bg-violet-50 text-violet-700',
+        'shipped':   'bg-amber-50 text-amber-700',
+        'completed': 'bg-emerald-50 text-emerald-700',
+        'cancelled': 'bg-gray-100 text-gray-400'
+    } %}
+    <span class="text-[10px] font-bold px-2 py-0.5 rounded-full {{ styles.get(status, 'bg-gray-100 text-gray-500') }}">
+        {{ {'received':'주문 접수','contacted':'연락 완료','shipped':'발송 완료','completed':'거래 완료','cancelled':'주문 취소'}.get(status, status) }}
+    </span>
+{% endmacro %}
+
+{% block content %}
+<div class="max-w-2xl mx-auto px-6 py-16">
+
+    <!-- 회원 정보 -->
+    <div class="flex items-center justify-between mb-10">
+        <div>
+            <h1 class="text-3xl font-serif font-bold text-gray-900 mb-1">{{ user.name or '회원' }}님</h1>
+            <p class="text-sm text-gray-400">{{ user.email or '이메일 정보 없음' }}</p>
+        </div>
+        <a href="{{ url_for('main.member_logout') }}"
+           class="text-sm font-medium text-gray-400 hover:text-red-500 transition-colors">로그아웃</a>
+    </div>
+
+    <div class="space-y-5">
+        <!-- 주문내역 카드 -->
+        <a href="{{ url_for('main.member_orders') }}"
+           class="block bg-white border border-gray-100 rounded-2xl p-6 shadow-sm hover:shadow-md transition-shadow">
+            <div class="flex items-center justify-between mb-4">
+                <h2 class="font-bold text-gray-900">주문 내역</h2>
+                <span class="text-xs text-gray-400">전체 {{ order_count }}건 →</span>
+            </div>
+            {% if not recent_orders %}
+            <p class="text-sm text-gray-400">아직 주문 내역이 없습니다.</p>
+            {% else %}
+            <div class="space-y-2">
+                {% for order in recent_orders %}
+                <div class="flex items-center justify-between text-sm">
+                    <span class="text-gray-700 truncate">{{ order.book_title }}</span>
+                    {{ status_badge(order.status) }}
+                </div>
+                {% endfor %}
+            </div>
+            {% endif %}
+        </a>
+
+        <!-- 선호 장르 카드 -->
+        <a href="{{ url_for('main.member_genres') }}"
+           class="block bg-white border border-gray-100 rounded-2xl p-6 shadow-sm hover:shadow-md transition-shadow">
+            <div class="flex items-center justify-between mb-4">
+                <h2 class="font-bold text-gray-900">선호 장르</h2>
+                <span class="text-xs text-gray-400">변경하기 →</span>
+            </div>
+            {% if not preferred_genre_list %}
+            <p class="text-sm text-gray-400">아직 선택한 장르가 없습니다. 설정하면 맞춤 추천을 보여드려요.</p>
+            {% else %}
+            <div class="flex flex-wrap gap-2">
+                {% for g in preferred_genre_list %}
+                <span class="text-xs font-semibold px-3 py-1 rounded-full bg-amber-50 text-amber-700 border border-amber-100">{{ g }}</span>
+                {% endfor %}
+            </div>
+            {% endif %}
+        </a>
+    </div>
+
+</div>
+{% endblock %}

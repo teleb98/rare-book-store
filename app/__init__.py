@@ -48,19 +48,23 @@ def create_app():
             print(f"Warning: PostgreSQL connection test failed: {e}. Falling back to SQLite.")
             database_url = None
 
-    if database_url:
+    if database_url and database_url.startswith(("postgres://", "postgresql://")):
         # Fix Render/Heroku/Supabase postgres:// to postgresql:// for SQLAlchemy 1.4+
         if database_url.startswith("postgres://"):
             database_url = database_url.replace("postgres://", "postgresql://", 1)
-        
+
         # Add connect_timeout to prevent infinite hangs during hibernation wakeups
         if "?" not in database_url:
             database_url += "?connect_timeout=10"
         else:
             database_url += "&connect_timeout=10"
-            
+
         app.config['SQLALCHEMY_DATABASE_URI'] = database_url
         print(f"✓ Using PostgreSQL database (production mode)")
+    elif database_url:
+        # 테스트/로컬에서 DATABASE_URL을 sqlite:// 등 다른 드라이버로 직접 지정한 경우 그대로 사용
+        app.config['SQLALCHEMY_DATABASE_URI'] = database_url
+        print(f"✓ Using custom DATABASE_URL: {database_url.split('://')[0]}://...")
     else:
         # Local Development: Use SQLite
         app.config['SQLALCHEMY_DATABASE_URI'] = f'sqlite:///{db_path}'

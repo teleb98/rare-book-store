@@ -13,7 +13,7 @@ from PIL import Image
 import io
 import base64
 
-from app.utils import search_books_with_fallback, auto_tag_genre, GENRE_TAXONOMY, upgrade_cover_url
+from app.utils import search_books_with_fallback, auto_tag_genre, GENRE_TAXONOMY, upgrade_cover_url, is_allowed_cover_image_url
 from app.oauth import PROVIDERS, is_provider_configured, build_authorize_url, exchange_code_for_profile
 # Configure Gemini
 GOOGLE_API_KEY = os.environ.get("GOOGLE_API_KEY")
@@ -166,6 +166,20 @@ def oauth_callback(provider):
     if not user.preferred_genres:
         return redirect(url_for('main.member_genres'))
     return redirect(url_for('main.index'))
+
+
+@main.route('/member/mypage')
+@member_required
+def member_mypage():
+    """마이페이지 — 주문내역/선호장르 등 회원 전용 메뉴를 한곳에 모은 허브"""
+    user = User.query.get_or_404(session['user_id'])
+    recent_orders = Order.query.filter_by(user_id=user.id).order_by(Order.created_at.desc(), Order.id.desc()).limit(3).all()
+    order_count = Order.query.filter_by(user_id=user.id).count()
+    preferred_genre_list = user.preferred_genres.split(',') if user.preferred_genres else []
+    return render_template(
+        'member_mypage.html', user=user, recent_orders=recent_orders,
+        order_count=order_count, preferred_genre_list=preferred_genre_list,
+    )
 
 
 @main.route('/member/genres', methods=['GET', 'POST'])
@@ -429,7 +443,7 @@ def purchase(id):
 @member_required
 def member_orders():
     """회원 주문 내역"""
-    orders = Order.query.filter_by(user_id=session['user_id']).order_by(Order.created_at.desc()).all()
+    orders = Order.query.filter_by(user_id=session['user_id']).order_by(Order.created_at.desc(), Order.id.desc()).all()
     return render_template('member_orders.html', orders=orders, status_labels=Order.STATUS_LABELS)
 
 # --- Admin Routes ---
@@ -708,7 +722,7 @@ def admin_orders():
     orders_q = Order.query
     if status_filter in Order.STATUS_LABELS:
         orders_q = orders_q.filter(Order.status == status_filter)
-    orders = orders_q.order_by(Order.created_at.desc()).all()
+    orders = orders_q.order_by(Order.created_at.desc(), Order.id.desc()).all()
 
     # 상태별 건수 (필터 탭에 표시)
     counts = {s: 0 for s in Order.STATUS_LABELS}
@@ -1049,10 +1063,17 @@ def admin_add_from_search():
             return redirect(url_for('main.admin_search'))
 
         # 표지 이미지 다운로드 → Base64 (저해상도 썸네일은 고해상도 원본으로 업그레이드 후 저장)
+        # SSRF 방지: 실제로 요청을 보낼 최종 URL(업그레이드 이후)을 검증한다.
+        # upgrade_cover_url 이전 URL만 검증하면 kakaocdn 형태의 URL에 fname= 파라미터로
+        # 내부망 주소를 숨겨 보내는 우회가 가능하므로, 반드시 변환 *이후* 값을 검사해야 한다.
         img_base64 = None
-        if cover_url:
+        resolved_cover_url = upgrade_cover_url(cover_url) if cover_url else ''
+        if resolved_cover_url and not is_allowed_cover_image_url(resolved_cover_url):
+            print(f"표지 이미지 다운로드 차단 (허용되지 않은 호스트): {resolved_cover_url}")
+            resolved_cover_url = ''
+        if resolved_cover_url:
             try:
-                img_resp = req.get(upgrade_cover_url(cover_url), timeout=8)
+                img_resp = req.get(resolved_cover_url, timeout=8)
                 img_resp.raise_for_status()
                 img = Image.open(io.BytesIO(img_resp.content))
                 if img.mode in ('RGBA', 'P'):
