@@ -125,11 +125,11 @@ def test_member_cannot_access_admin_routes_with_member_session(client, db):
     assert '/login' in resp2.headers['Location']
 
 
-def test_admin_session_alone_cannot_use_member_only_purchase(client, db):
-    """admin_required는 만족해도 member_required(로그인 회원)는 아니므로 구매는 막혀야 한다"""
+def test_admin_session_alone_cannot_use_member_only_checkout(client, db):
+    """admin_required는 만족해도 member_required(로그인 회원)는 아니므로 주문은 막혀야 한다"""
     b = make_book(db, stock_quantity=1)
     login_admin(client)
-    resp = client.post(f'/purchase/{b.id}')
+    resp = client.get(f'/checkout?book_id={b.id}&qty=1')
     assert resp.status_code == 302
     assert '/member/login' in resp.headers['Location']
 
@@ -148,18 +148,64 @@ def test_review_user_id_cannot_be_spoofed_via_form(client, db):
     assert review.user_id == u1.id  # u2.id로 저장되면 심각한 버그
 
 
-def test_order_book_id_cannot_be_spoofed_via_form(client, db):
-    """purchase 라우트는 URL의 id만 사용하므로 폼 바디 주입이 영향을 줘선 안 된다"""
+def test_checkout_book_id_query_param_wins_over_form_body(client, db):
+    """체크아웃은 쿼리스트링의 book_id를 신뢰하므로, 폼 바디에 다른 book_id를 끼워 넣어도 무시되어야 한다"""
     u = make_user(db)
     real_book = make_book(db, title='실제구매책', stock_quantity=1)
     other_book = make_book(db, title='다른책', stock_quantity=1)
     login_member(client, u.id, u.name)
 
-    client.post(f'/purchase/{real_book.id}', data={'book_id': str(other_book.id)})
+    client.post(f'/checkout?book_id={real_book.id}&qty=1', data={
+        'book_id': str(other_book.id),
+        'recipient_name': '홍길동', 'phone': '010-1234-5678', 'postal_code': '12345', 'address1': '주소',
+    })
 
     from app.models import Order
     order = Order.query.filter_by(user_id=u.id).first()
+    assert order is not None
     assert order.book_id == real_book.id
+
+
+def test_cart_item_cannot_be_updated_by_other_member(client, db):
+    """다른 회원의 장바구니 항목 id를 알아내도 수정/삭제할 수 없어야 한다 (IDOR 방지)"""
+    u1 = make_user(db, provider_id='victim')
+    u2 = make_user(db, provider_id='attacker')
+    b = make_book(db, stock_quantity=5)
+
+    login_member(client, u1.id, u1.name)
+    client.post(f'/cart/add/{b.id}', data={'quantity': '1'})
+
+    from app.models import CartItem
+    item = CartItem.query.filter_by(user_id=u1.id).first()
+
+    login_member(client, u2.id, u2.name)
+    resp = client.post(f'/cart/update/{item.id}', data={'quantity': '99'})
+    assert resp.status_code == 404
+
+    resp2 = client.post(f'/cart/remove/{item.id}')
+    assert resp2.status_code == 404
+
+    db.session.refresh(item)
+    assert item.quantity == 1  # 변경되지 않아야 함
+
+
+def test_checkout_only_uses_current_users_cart(client, db):
+    """장바구니 결제 시 다른 회원의 장바구니가 섞여 들어가면 안 된다"""
+    u1 = make_user(db, provider_id='u1')
+    u2 = make_user(db, provider_id='u2')
+    b1 = make_book(db, title='회원1장바구니책', stock_quantity=5)
+    b2 = make_book(db, title='회원2장바구니책', stock_quantity=5)
+
+    login_member(client, u1.id, u1.name)
+    client.post(f'/cart/add/{b1.id}', data={'quantity': '1'})
+
+    login_member(client, u2.id, u2.name)
+    client.post(f'/cart/add/{b2.id}', data={'quantity': '1'})
+
+    resp = client.get('/checkout')
+    body = resp.data.decode()
+    assert '회원2장바구니책' in body
+    assert '회원1장바구니책' not in body
 
 
 def test_genre_tag_admin_route_requires_post(client, db):

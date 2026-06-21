@@ -39,60 +39,65 @@
     {% endfor %}
 </div>
 
-{% if not orders %}
+{% if not groups %}
 <div class="py-24 text-center bg-white rounded-2xl border border-gray-100">
     <p class="text-gray-400">해당하는 주문이 없습니다.</p>
 </div>
 {% else %}
-<div class="overflow-x-auto bg-white rounded-lg shadow border border-stone-200">
-    <table class="min-w-full leading-normal">
-        <thead class="bg-stone-100 text-stone-600 uppercase text-xs">
-            <tr>
-                <th class="py-3 px-5 text-left">주문번호</th>
-                <th class="py-3 px-5 text-left">도서</th>
-                <th class="py-3 px-5 text-left">주문 회원</th>
-                <th class="py-3 px-5 text-center">가격</th>
-                <th class="py-3 px-5 text-center">주문일</th>
-                <th class="py-3 px-5 text-center">상태</th>
-                <th class="py-3 px-5 text-center">상태 변경</th>
-            </tr>
-        </thead>
-        <tbody>
-            {% for order in orders %}
-            <tr>
-                <td class="px-5 py-4 border-b border-stone-200 text-sm font-mono text-stone-600">#{{ '%06d'|format(order.id) }}</td>
-                <td class="px-5 py-4 border-b border-stone-200 text-sm">
-                    {% if order.book_id %}
-                    <a href="{{ url_for('main.book_detail', id=order.book_id) }}"
-                       class="text-stone-900 font-semibold font-serif hover:text-blue-600">{{ order.book_title }}</a>
-                    {% else %}
-                    <span class="text-stone-900 font-semibold font-serif">{{ order.book_title }}</span>
-                    <span class="block text-[10px] text-gray-400">(삭제된 도서)</span>
-                    {% endif %}
-                </td>
-                <td class="px-5 py-4 border-b border-stone-200 text-sm">
-                    <p class="text-stone-900">{{ order.user.name or '회원' }}</p>
-                    <p class="text-stone-400 text-xs">{{ order.user.email or '이메일 없음' }}</p>
-                </td>
-                <td class="px-5 py-4 border-b border-stone-200 text-sm text-center font-bold text-stone-900">&#8361;{{ "{:,.0f}".format(order.price) }}</td>
-                <td class="px-5 py-4 border-b border-stone-200 text-sm text-center text-stone-500">{{ order.created_at.strftime('%Y.%m.%d') }}</td>
-                <td class="px-5 py-4 border-b border-stone-200 text-sm text-center">{{ status_badge(order.status) }}</td>
-                <td class="px-5 py-4 border-b border-stone-200 text-sm text-center">
-                    <form action="{{ url_for('main.admin_order_status', id=order.id) }}" method="POST" class="flex items-center gap-2 justify-center">
-                        <input type="hidden" name="return_status" value="{{ status_filter }}">
-                        <select name="status" class="text-xs border border-gray-200 rounded-lg px-2 py-1.5 focus:outline-none focus:ring-1 focus:ring-gray-900">
-                            {% for s in status_flow %}
-                            <option value="{{ s }}" {% if order.status == s %}selected{% endif %}>{{ status_labels[s] }}</option>
-                            {% endfor %}
-                        </select>
-                        <button type="submit" class="text-xs bg-gray-900 hover:bg-black text-white font-semibold px-3 py-1.5 rounded-lg transition-colors">변경</button>
-                    </form>
-                </td>
-            </tr>
+<div class="space-y-4">
+    {% for g in groups %}
+    {% set first = g.orders[0] %}
+    <div class="bg-white border border-stone-200 rounded-2xl p-5 shadow-sm">
+        <div class="flex flex-wrap items-start justify-between gap-3 mb-4">
+            <div>
+                <div class="flex items-center gap-2 mb-1">
+                    <span class="text-xs font-mono text-stone-400">#{{ g.group_id[:8] }}</span>
+                    {{ status_badge(g.status) }}
+                    <span class="text-xs text-stone-400">{{ g.created_at.strftime('%Y.%m.%d %H:%M') }}</span>
+                </div>
+                <p class="text-stone-900 font-semibold">{{ first.user.name or '회원' }}</p>
+                <p class="text-stone-400 text-xs">{{ first.user.email or '이메일 없음' }}</p>
+            </div>
+            <form action="{{ url_for('main.admin_order_status', group_key=g.group_id) }}" method="POST" class="flex items-center gap-2">
+                <input type="hidden" name="return_status" value="{{ status_filter }}">
+                <select name="status" class="text-xs border border-gray-200 rounded-lg px-2 py-1.5 focus:outline-none focus:ring-1 focus:ring-gray-900">
+                    {% for s in status_flow %}
+                    <option value="{{ s }}" {% if g.status == s %}selected{% endif %}>{{ status_labels[s] }}</option>
+                    {% endfor %}
+                </select>
+                <button type="submit" class="text-xs bg-gray-900 hover:bg-black text-white font-semibold px-3 py-1.5 rounded-lg transition-colors">변경</button>
+            </form>
+        </div>
+
+        <div class="divide-y divide-stone-50 border-t border-stone-100">
+            {% for order in g.orders %}
+            <div class="flex items-center justify-between gap-3 py-2.5 text-sm">
+                {% if order.book_id %}
+                <a href="{{ url_for('main.book_detail', id=order.book_id) }}"
+                   class="text-stone-900 font-serif hover:text-blue-600 line-clamp-1">{{ order.book_title }}</a>
+                {% else %}
+                <span class="text-stone-900 font-serif line-clamp-1">{{ order.book_title }} <span class="text-[10px] text-gray-400">(삭제된 도서)</span></span>
+                {% endif %}
+                <span class="text-stone-500 flex-shrink-0">&#8361;{{ "{:,.0f}".format(order.price) }} × {{ order.quantity }}</span>
+            </div>
             {% endfor %}
-        </tbody>
-    </table>
+        </div>
+
+        {% if first.recipient_name %}
+        <div class="mt-3 text-xs text-stone-600 bg-stone-50 rounded-xl px-4 py-3 leading-relaxed">
+            <span class="font-semibold">{{ first.recipient_name }}</span> · {{ first.phone }}<br>
+            ({{ first.postal_code }}) {{ first.address1 }} {{ first.address2 }}
+            {% if first.delivery_memo %}<br><span class="text-stone-400">메모: {{ first.delivery_memo }}</span>{% endif %}
+        </div>
+        {% endif %}
+
+        <div class="flex items-center justify-between border-t border-stone-100 mt-3 pt-3">
+            <span class="text-xs text-stone-400">총 {{ g.orders|length }}건</span>
+            <span class="font-bold text-stone-900">&#8361;{{ "{:,.0f}".format(g.total) }}</span>
+        </div>
+    </div>
+    {% endfor %}
 </div>
-<p class="mt-4 text-xs text-gray-400">※ 주문을 '주문 취소'로 변경하면 해당 도서의 재고가 자동으로 1 복원됩니다 (도서가 존재하는 경우).</p>
+<p class="mt-4 text-xs text-gray-400">※ 주문을 '주문 취소'로 변경하면 각 항목의 주문 수량만큼 해당 도서의 재고가 자동으로 복원됩니다 (도서가 존재하는 경우).</p>
 {% endif %}
 {% endblock %}

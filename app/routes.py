@@ -1,7 +1,7 @@
 from flask import Blueprint, render_template, request, flash, redirect, url_for, jsonify, current_app, session
 from functools import wraps
 from app import db
-from app.models import Book, User, Review, Order, RestockRequest
+from app.models import Book, User, Review, Order, RestockRequest, CartItem
 from app.mailer import send_email, is_email_configured
 from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy import text, cast, String
@@ -22,6 +22,16 @@ if GOOGLE_API_KEY:
 
 
 main = Blueprint('main', __name__)
+
+
+@main.app_context_processor
+def inject_cart_count():
+    """네비게이션 바의 장바구니 뱃지에 쓸 총 수량을 모든 템플릿에서 바로 쓸 수 있게 한다."""
+    if session.get('user_id'):
+        count = db.session.query(db.func.sum(CartItem.quantity)).filter_by(user_id=session['user_id']).scalar() or 0
+        return {'cart_count': count}
+    return {'cart_count': 0}
+
 
 # --- Authentication Decorator ---
 def admin_required(f):
@@ -406,45 +416,160 @@ def submit_review(id):
     return redirect(url_for('main.book_detail', id=id))
 
 
-@main.route('/purchase/<int:id>', methods=['POST'])
+@main.route('/cart/add/<int:id>', methods=['POST'])
 @member_required
-def purchase(id):
+def cart_add(id):
     book = Book.query.get_or_404(id)
     try:
-        # 재고 차감과 주문 기록을 한 트랜잭션으로 처리 (동시성 안전을 위해 원자적 UPDATE 사용)
-        stmt = text("UPDATE book SET stock_quantity = stock_quantity - 1 WHERE id = :id AND stock_quantity > 0")
-        result = db.session.execute(stmt, {'id': id})
+        qty = max(1, int(request.form.get('quantity', 1)))
+    except (TypeError, ValueError):
+        qty = 1
 
-        if result.rowcount == 1:
-            order = Order(
-                user_id=session['user_id'],
-                book_id=book.id,
-                book_title=book.title,   # 주문 시점 스냅샷
-                price=book.price,        # 주문 시점 스냅샷
-                status='received',
-            )
-            db.session.add(order)
+    if book.stock_quantity <= 0:
+        flash('품절된 도서는 장바구니에 담을 수 없습니다.', 'error')
+        return redirect(url_for('main.book_detail', id=id))
+
+    item = CartItem.query.filter_by(user_id=session['user_id'], book_id=book.id).first()
+    if item:
+        item.quantity += qty
+    else:
+        item = CartItem(user_id=session['user_id'], book_id=book.id, quantity=qty)
+        db.session.add(item)
+    db.session.commit()
+    flash(f"'{book.title}'을 장바구니에 담았습니다.", 'success')
+    return redirect(request.referrer or url_for('main.index'))
+
+
+@main.route('/cart')
+@member_required
+def cart_view():
+    items = (CartItem.query.filter_by(user_id=session['user_id'])
+             .join(Book).order_by(CartItem.created_at.desc()).all())
+    total = sum(i.subtotal for i in items)
+    return render_template('cart.html', items=items, total=total)
+
+
+@main.route('/cart/update/<int:item_id>', methods=['POST'])
+@member_required
+def cart_update(item_id):
+    item = CartItem.query.filter_by(id=item_id, user_id=session['user_id']).first_or_404()
+    try:
+        qty = int(request.form.get('quantity', 1))
+    except (TypeError, ValueError):
+        qty = 1
+
+    if qty <= 0:
+        db.session.delete(item)
+        flash('장바구니에서 제거했습니다.', 'success')
+    else:
+        item.quantity = qty
+        flash('수량을 변경했습니다.', 'success')
+    db.session.commit()
+    return redirect(url_for('main.cart_view'))
+
+
+@main.route('/cart/remove/<int:item_id>', methods=['POST'])
+@member_required
+def cart_remove(item_id):
+    item = CartItem.query.filter_by(id=item_id, user_id=session['user_id']).first_or_404()
+    db.session.delete(item)
+    db.session.commit()
+    flash('장바구니에서 제거했습니다.', 'success')
+    return redirect(url_for('main.cart_view'))
+
+
+@main.route('/checkout', methods=['GET', 'POST'])
+@member_required
+def checkout():
+    """결제(배송지 입력) 페이지. '바로 주문하기'(book_id 파라미터 있음)와
+    장바구니 결제(파라미터 없음 — 현재 회원의 장바구니 전체) 두 흐름을 공용으로 처리한다."""
+    buy_now_id = request.values.get('book_id', type=int)
+    buy_now_qty = request.values.get('qty', type=int) or 1
+
+    if buy_now_id:
+        book = Book.query.get_or_404(buy_now_id)
+        line_items = [{'book': book, 'quantity': max(1, buy_now_qty)}]
+    else:
+        cart_items = CartItem.query.filter_by(user_id=session['user_id']).join(Book).all()
+        line_items = [{'book': ci.book, 'quantity': ci.quantity} for ci in cart_items]
+
+    if not line_items:
+        flash('주문할 상품이 없습니다.', 'error')
+        return redirect(url_for('main.cart_view'))
+
+    total = sum(li['book'].price * li['quantity'] for li in line_items)
+
+    if request.method == 'POST':
+        recipient_name = request.form.get('recipient_name', '').strip()
+        phone = request.form.get('phone', '').strip()
+        postal_code = request.form.get('postal_code', '').strip()
+        address1 = request.form.get('address1', '').strip()
+        address2 = request.form.get('address2', '').strip()
+        memo = request.form.get('memo', '').strip()
+
+        if not all([recipient_name, phone, postal_code, address1]):
+            flash('받는 분 이름·연락처·우편번호·주소는 필수 입력입니다.', 'error')
+            return render_template('checkout.html', items=line_items, total=total,
+                                    buy_now_id=buy_now_id, buy_now_qty=buy_now_qty, form=request.form)
+
+        order_group_id = secrets.token_hex(8)
+        try:
+            for li in line_items:
+                stmt = text("UPDATE book SET stock_quantity = stock_quantity - :qty "
+                            "WHERE id = :id AND stock_quantity >= :qty")
+                result = db.session.execute(stmt, {'qty': li['quantity'], 'id': li['book'].id})
+                if result.rowcount != 1:
+                    db.session.rollback()
+                    flash(f"'{li['book'].title}'의 재고가 부족합니다. 수량을 확인해주세요.", 'error')
+                    return redirect(url_for('main.cart_view') if not buy_now_id
+                                     else url_for('main.checkout', book_id=buy_now_id, qty=buy_now_qty))
+
+                db.session.add(Order(
+                    user_id=session['user_id'], book_id=li['book'].id, book_title=li['book'].title,
+                    price=li['book'].price, quantity=li['quantity'], status='received',
+                    order_group_id=order_group_id,
+                    recipient_name=recipient_name, phone=phone, postal_code=postal_code,
+                    address1=address1, address2=address2, delivery_memo=memo,
+                ))
+
+            if not buy_now_id:
+                CartItem.query.filter_by(user_id=session['user_id']).delete()
+
             db.session.commit()
             flash('주문이 접수되었습니다. 확인 후 관리자가 직접 연락드립니다.', 'success')
             return redirect(url_for('main.member_orders'))
-        else:
+
+        except SQLAlchemyError as e:
             db.session.rollback()
-            flash('재고가 없거나 유효하지 않은 도서입니다.', 'error')
+            flash('주문 처리 중 오류가 발생했습니다.', 'error')
+            print(f"Checkout error: {e}")
 
-    except SQLAlchemyError as e:
-        db.session.rollback()
-        flash('구매 중 오류가 발생했습니다.', 'error')
-        print(f"Purchase Error: {e}")
+    return render_template('checkout.html', items=line_items, total=total,
+                            buy_now_id=buy_now_id, buy_now_qty=buy_now_qty)
 
-    return redirect(url_for('main.index'))
+
+def _group_orders(orders):
+    """order_group_id가 같은 행들을 한 주문으로 묶는다. (그룹ID 없는 옛 단건 주문은 각자 독립 그룹)
+    이미 최신순으로 정렬된 리스트를 그대로 순회해 그룹의 표시 순서도 최신순을 유지한다."""
+    groups, seen = [], {}
+    for o in orders:
+        key = o.order_group_id or f'single-{o.id}'
+        if key not in seen:
+            seen[key] = {'group_id': key, 'orders': [], 'created_at': o.created_at, 'status': o.status}
+            groups.append(seen[key])
+        seen[key]['orders'].append(o)
+    for g in groups:
+        g['total'] = sum(o.subtotal for o in g['orders'])
+    return groups
 
 
 @main.route('/member/orders')
 @member_required
 def member_orders():
-    """회원 주문 내역"""
+    """회원 주문 내역 — 같은 결제로 묶인 여러 권은 하나의 주문으로 표시"""
     orders = Order.query.filter_by(user_id=session['user_id']).order_by(Order.created_at.desc(), Order.id.desc()).all()
-    return render_template('member_orders.html', orders=orders, status_labels=Order.STATUS_LABELS)
+    groups = _group_orders(orders)
+    return render_template('member_orders.html', groups=groups, status_labels=Order.STATUS_LABELS)
 
 # --- Admin Routes ---
 
@@ -714,48 +839,66 @@ def admin_delete(id):
     return redirect(url_for('main.admin'))
 
 
+def _orders_for_group_key(group_key):
+    """member/admin 양쪽에서 같은 규칙으로 그룹 키 -> Order 행 목록을 찾는다.
+    'single-<id>'는 order_group_id가 없는 옛 단건 주문을 가리킨다."""
+    if group_key.startswith('single-'):
+        try:
+            order_id = int(group_key.split('-', 1)[1])
+        except ValueError:
+            return []
+        return Order.query.filter_by(id=order_id).all()
+    return Order.query.filter_by(order_group_id=group_key).all()
+
+
 @main.route('/admin/orders')
 @admin_required
 def admin_orders():
-    """주문 관리 — 전체 주문을 최신순으로 표시"""
+    """주문 관리 — 같은 결제로 묶인 여러 권은 하나의 주문으로 묶어 최신순으로 표시"""
     status_filter = request.args.get('status', '').strip()
     orders_q = Order.query
     if status_filter in Order.STATUS_LABELS:
         orders_q = orders_q.filter(Order.status == status_filter)
     orders = orders_q.order_by(Order.created_at.desc(), Order.id.desc()).all()
+    groups = _group_orders(orders)
 
-    # 상태별 건수 (필터 탭에 표시)
+    # 상태별 건수 (필터 탭에 표시) — 그룹 단위가 아니라 행 단위로 집계
     counts = {s: 0 for s in Order.STATUS_LABELS}
     for o in Order.query.all():
         counts[o.status] = counts.get(o.status, 0) + 1
 
     return render_template(
         'admin_orders.html',
-        orders=orders, status_labels=Order.STATUS_LABELS,
+        groups=groups, status_labels=Order.STATUS_LABELS,
         status_flow=Order.STATUS_FLOW, status_filter=status_filter, counts=counts,
     )
 
 
-@main.route('/admin/orders/<int:id>/status', methods=['POST'])
+@main.route('/admin/orders/<group_key>/status', methods=['POST'])
 @admin_required
-def admin_order_status(id):
-    """주문 상태 변경. '취소'로 바꾸면(이전이 취소가 아니었다면) 재고를 1 복원한다."""
-    order = Order.query.get_or_404(id)
+def admin_order_status(group_key):
+    """주문(그룹) 상태 변경. '취소'로 바꾸면(이전이 취소가 아니었다면) 그룹 내 각 항목의 수량만큼 재고를 복원한다."""
+    orders = _orders_for_group_key(group_key)
+    if not orders:
+        flash('주문을 찾을 수 없습니다.', 'error')
+        return redirect(url_for('main.admin_orders'))
+
     new_status = request.form.get('status', '').strip()
     if new_status not in Order.STATUS_LABELS:
         flash('유효하지 않은 주문 상태입니다.', 'error')
         return redirect(url_for('main.admin_orders'))
 
     try:
-        if new_status == 'cancelled' and order.status != 'cancelled' and order.book_id:
-            # 취소 시 재고 원복 (도서가 아직 존재하는 경우)
-            db.session.execute(
-                text("UPDATE book SET stock_quantity = stock_quantity + 1 WHERE id = :id"),
-                {'id': order.book_id},
-            )
-        order.status = new_status
+        for order in orders:
+            if new_status == 'cancelled' and order.status != 'cancelled' and order.book_id:
+                # 취소 시 재고 원복 (도서가 아직 존재하는 경우, 주문 당시 수량만큼)
+                db.session.execute(
+                    text("UPDATE book SET stock_quantity = stock_quantity + :qty WHERE id = :id"),
+                    {'qty': order.quantity, 'id': order.book_id},
+                )
+            order.status = new_status
         db.session.commit()
-        flash(f"주문 #{order.id:06d} 상태를 '{order.status_label}'(으)로 변경했습니다.", 'success')
+        flash(f"주문 상태를 '{Order.STATUS_LABELS[new_status]}'(으)로 변경했습니다.", 'success')
     except SQLAlchemyError as e:
         db.session.rollback()
         print(f"주문 상태 변경 실패: {e}")

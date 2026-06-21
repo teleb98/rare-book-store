@@ -117,6 +117,26 @@ def create_app():
                             conn.execute(db.text("ALTER TABLE \"user\" ADD COLUMN preferred_genres VARCHAR(255)"))
                             conn.commit()
                         print("Migration complete: 'preferred_genres' column added.")
+
+                    if 'order' in inspector.get_table_names():
+                        order_columns = [col['name'] for col in inspector.get_columns('order')]
+                        order_new_columns = {
+                            'quantity':        'INTEGER NOT NULL DEFAULT 1',
+                            'order_group_id':  'VARCHAR(32)',
+                            'recipient_name':  'VARCHAR(100)',
+                            'phone':           'VARCHAR(20)',
+                            'postal_code':     'VARCHAR(10)',
+                            'address1':        'VARCHAR(255)',
+                            'address2':        'VARCHAR(255)',
+                            'delivery_memo':   'VARCHAR(255)',
+                        }
+                        for col_name, col_def in order_new_columns.items():
+                            if col_name not in order_columns:
+                                print(f"Migrating: Adding '{col_name}' column to 'order' table...")
+                                with db.engine.connect() as conn:
+                                    conn.execute(db.text(f'ALTER TABLE "order" ADD COLUMN {col_name} {col_def}'))
+                                    conn.commit()
+                                print(f"Migration complete: '{col_name}' column added.")
                 except Exception as e:
                     print(f"Migration check failed (safe to ignore if app works): {e}")
                 # --------------------------------------------------------

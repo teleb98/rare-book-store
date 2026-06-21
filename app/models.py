@@ -60,18 +60,34 @@ class Review(db.Model):
 
 class Order(db.Model):
     """회원 주문 기록. 결제는 '확인 후 수동 연락' 방식이라 접수~완료 상태를 추적한다.
-    도서가 수정/삭제돼도 이력이 남도록 제목·가격은 주문 시점 스냅샷으로 저장한다."""
+    도서가 수정/삭제돼도 이력이 남도록 제목·가격은 주문 시점 스냅샷으로 저장한다.
+    장바구니에서 여러 권을 한 번에 결제하면 같은 order_group_id를 공유한다 (한 주문 = 여러 Order 행)."""
     id = db.Column(db.Integer, primary_key=True)
     user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
     book_id = db.Column(db.Integer, db.ForeignKey('book.id', ondelete='SET NULL'), nullable=True)
     book_title = db.Column(db.String(100), nullable=False)  # 주문 시점 제목 스냅샷
-    price = db.Column(db.Float, nullable=False)             # 주문 시점 가격 스냅샷
+    price = db.Column(db.Float, nullable=False)             # 주문 시점 단가 스냅샷
+    quantity = db.Column(db.Integer, nullable=False, default=1)
+    order_group_id = db.Column(db.String(32), nullable=True)  # 같은 결제(체크아웃)에서 나온 항목들을 묶는 식별자
     status = db.Column(db.String(20), nullable=False, default='received')
+
+    # 배송지 (체크아웃 시점 입력값 스냅샷)
+    recipient_name = db.Column(db.String(100), nullable=True)
+    phone = db.Column(db.String(20), nullable=True)
+    postal_code = db.Column(db.String(10), nullable=True)
+    address1 = db.Column(db.String(255), nullable=True)
+    address2 = db.Column(db.String(255), nullable=True)
+    delivery_memo = db.Column(db.String(255), nullable=True)
+
     created_at = db.Column(db.DateTime, server_default=db.func.now())
     updated_at = db.Column(db.DateTime, server_default=db.func.now(), onupdate=db.func.now())
 
     user = db.relationship('User', backref=db.backref('orders', lazy=True))
     book = db.relationship('Book', backref=db.backref('orders', lazy=True, passive_deletes=True))
+
+    @property
+    def subtotal(self):
+        return self.price * self.quantity
 
     # 주문 상태: 접수 → 연락 → 발송 → 완료 (취소는 별도 종료 상태)
     STATUS_LABELS = {
@@ -105,3 +121,27 @@ class RestockRequest(db.Model):
 
     def __repr__(self):
         return f'<RestockRequest book={self.book_id} email={self.email} notified={self.notified}>'
+
+
+class CartItem(db.Model):
+    """회원의 장바구니 항목. 회원당 도서별로 1행만 존재하며 재담기 시 수량을 더한다."""
+    id = db.Column(db.Integer, primary_key=True)
+    user_id = db.Column(db.Integer, db.ForeignKey('user.id', ondelete='CASCADE'), nullable=False)
+    book_id = db.Column(db.Integer, db.ForeignKey('book.id', ondelete='CASCADE'), nullable=False)
+    quantity = db.Column(db.Integer, nullable=False, default=1)
+    created_at = db.Column(db.DateTime, server_default=db.func.now())
+
+    user = db.relationship('User', backref=db.backref('cart_items', lazy=True, cascade='all, delete-orphan'))
+    book = db.relationship('Book', backref=db.backref('cart_items', lazy=True, cascade='all, delete-orphan'))
+
+    __table_args__ = (
+        db.UniqueConstraint('user_id', 'book_id', name='uq_cart_user_book'),
+        db.CheckConstraint('quantity >= 1', name='ck_cart_quantity_positive'),
+    )
+
+    @property
+    def subtotal(self):
+        return self.book.price * self.quantity
+
+    def __repr__(self):
+        return f'<CartItem user={self.user_id} book={self.book_id} qty={self.quantity}>'

@@ -1,0 +1,68 @@
+{% extends "base.html" %}
+{% block title %}장바구니 | Rare Book Store{% endblock %}
+
+{% block content %}
+<div class="max-w-3xl mx-auto px-6 py-16">
+    <div class="flex items-center justify-between mb-8">
+        <h1 class="text-3xl font-serif font-bold text-gray-900">장바구니</h1>
+        <a href="{{ url_for('main.index') }}" class="text-sm text-blue-500 hover:underline">← 도서 더 둘러보기</a>
+    </div>
+
+    {% if not items %}
+    <div class="py-24 text-center">
+        <div class="inline-flex items-center justify-center w-16 h-16 rounded-full bg-gray-100 mb-6">
+            <svg class="w-8 h-8 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5"
+                    d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 11-4 0 2 2 0 014 0z"/>
+            </svg>
+        </div>
+        <p class="text-gray-500 text-lg font-semibold mb-1">장바구니가 비어 있습니다</p>
+        <a href="{{ url_for('main.index') }}" class="inline-flex items-center text-sm font-medium text-blue-500 hover:underline mt-2">← 도서 둘러보기</a>
+    </div>
+    {% else %}
+    <div class="space-y-4 mb-8">
+        {% for item in items %}
+        <div class="flex items-center gap-4 bg-white border border-gray-100 rounded-2xl px-5 py-4 shadow-sm">
+            <div class="w-14 h-20 rounded-lg overflow-hidden bg-gray-100 flex-shrink-0">
+                {% if item.book.image_data %}
+                <img src="data:image/jpeg;base64,{{ item.book.image_data }}" alt="{{ item.book.title }}" class="w-full h-full object-cover">
+                {% else %}
+                <div class="w-full h-full flex items-center justify-center font-serif font-bold text-gray-400">{{ item.book.title[0] }}</div>
+                {% endif %}
+            </div>
+            <div class="flex-grow min-w-0">
+                <a href="{{ url_for('main.book_detail', id=item.book.id) }}" class="font-semibold text-gray-900 hover:text-blue-600 transition-colors line-clamp-1">{{ item.book.title }}</a>
+                <p class="text-xs text-gray-400 mb-1">{{ item.book.author }}</p>
+                <p class="text-sm font-bold text-gray-900">&#8361;{{ "{:,.0f}".format(item.book.price) }}</p>
+                {% if item.quantity > item.book.stock_quantity %}
+                <p class="text-xs text-red-500 mt-1">재고 {{ item.book.stock_quantity }}권만 남아있습니다.</p>
+                {% endif %}
+            </div>
+            <form action="{{ url_for('main.cart_update', item_id=item.id) }}" method="POST" class="flex items-center gap-1.5 flex-shrink-0">
+                <input type="number" name="quantity" value="{{ item.quantity }}" min="0" max="{{ item.book.stock_quantity }}"
+                    class="w-14 text-center text-sm border border-gray-200 rounded-lg py-1.5 focus:outline-none focus:ring-1 focus:ring-gray-900">
+                <button type="submit" class="text-xs bg-gray-100 hover:bg-gray-200 text-gray-700 font-semibold px-3 py-2 rounded-lg transition-colors">변경</button>
+            </form>
+            <form action="{{ url_for('main.cart_remove', item_id=item.id) }}" method="POST">
+                <button type="submit" class="text-gray-300 hover:text-red-500 transition-colors p-2" title="삭제">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+                    </svg>
+                </button>
+            </form>
+        </div>
+        {% endfor %}
+    </div>
+
+    <div class="flex items-center justify-between bg-gray-50 rounded-2xl px-6 py-5 mb-6">
+        <span class="text-sm text-gray-500">총 {{ items|length }}권</span>
+        <span class="text-xl font-bold text-gray-900">&#8361;{{ "{:,.0f}".format(total) }}</span>
+    </div>
+
+    <a href="{{ url_for('main.checkout') }}"
+        class="block w-full text-center bg-gray-900 hover:bg-black text-white font-semibold py-4 rounded-full transition-colors">
+        주문하기
+    </a>
+    {% endif %}
+</div>
+{% endblock %}

@@ -74,6 +74,7 @@ def login_member(client, user_id, user_name='테스터'):
     with client.session_transaction() as sess:
         sess['user_id'] = user_id
         sess['user_name'] = user_name
+        sess.pop('_flashes', None)  # 동일 테스트 클라이언트로 사용자를 바꿀 때 이전 사용자의 flash가 새지 않도록
 
 
 def make_user(db, provider_id='u1', name='테스터', email='t@example.com'):
@@ -91,3 +92,15 @@ def make_book(db, **overrides):
     db.session.add(b)
     db.session.commit()
     return b
+
+
+DEFAULT_SHIPPING = {
+    'recipient_name': '홍길동', 'phone': '010-1234-5678', 'postal_code': '12345',
+    'address1': '서울시 강남구 테스트로 1', 'address2': '101동 202호', 'memo': '',
+}
+
+
+def buy_now(client, book_id, qty=1, **shipping_overrides):
+    """'바로 주문하기' 흐름을 한 번에 수행하는 테스트 헬퍼 (POST /checkout?book_id=...)"""
+    data = {**DEFAULT_SHIPPING, **shipping_overrides}
+    return client.post(f'/checkout?book_id={book_id}&qty={qty}', data=data, follow_redirects=False)

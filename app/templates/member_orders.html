@@ -21,7 +21,7 @@
         <a href="{{ url_for('main.member_mypage') }}" class="text-sm text-blue-500 hover:underline">← 마이페이지로 돌아가기</a>
     </div>
 
-    {% if not orders %}
+    {% if not groups %}
     <div class="py-24 text-center">
         <div class="inline-flex items-center justify-center w-16 h-16 rounded-full bg-gray-100 mb-6">
             <svg class="w-8 h-8 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -33,25 +33,43 @@
         <a href="{{ url_for('main.index') }}" class="inline-flex items-center text-sm font-medium text-blue-500 hover:underline mt-2">← 도서 둘러보기</a>
     </div>
     {% else %}
-    <div class="space-y-4">
-        {% for order in orders %}
-        <div class="flex items-center justify-between gap-4 bg-white border border-gray-100 rounded-2xl px-6 py-5 shadow-sm">
-            <div class="min-w-0">
-                <div class="flex items-center gap-2 mb-1">
-                    {{ status_badge(order.status) }}
-                    <span class="text-xs text-gray-400">{{ order.created_at.strftime('%Y.%m.%d') }}</span>
+    <div class="space-y-5">
+        {% for g in groups %}
+        {% set first = g.orders[0] %}
+        <div class="bg-white border border-gray-100 rounded-2xl px-6 py-5 shadow-sm">
+            <div class="flex items-center justify-between gap-4 mb-4">
+                <div class="flex items-center gap-2">
+                    {{ status_badge(g.status) }}
+                    <span class="text-xs text-gray-400">{{ g.created_at.strftime('%Y.%m.%d') }}</span>
                 </div>
-                {% if order.book_id %}
-                <a href="{{ url_for('main.book_detail', id=order.book_id) }}"
-                   class="font-serif font-bold text-gray-900 hover:text-blue-600 transition-colors line-clamp-1">{{ order.book_title }}</a>
-                {% else %}
-                <span class="font-serif font-bold text-gray-900 line-clamp-1">{{ order.book_title }}</span>
-                {% endif %}
-                <p class="text-sm text-gray-500 mt-0.5">&#8361;{{ "{:,.0f}".format(order.price) }}</p>
+                <span class="text-[11px] text-gray-400 font-mono">#{{ g.group_id[:8] }}</span>
             </div>
-            <div class="text-right flex-shrink-0">
-                <span class="text-[11px] text-gray-400">주문번호</span>
-                <p class="text-sm font-mono text-gray-600">#{{ '%06d'|format(order.id) }}</p>
+
+            <div class="space-y-2 mb-4">
+                {% for order in g.orders %}
+                <div class="flex items-center justify-between gap-3 text-sm">
+                    {% if order.book_id %}
+                    <a href="{{ url_for('main.book_detail', id=order.book_id) }}"
+                       class="text-gray-900 hover:text-blue-600 transition-colors line-clamp-1">{{ order.book_title }}</a>
+                    {% else %}
+                    <span class="text-gray-900 line-clamp-1">{{ order.book_title }}</span>
+                    {% endif %}
+                    <span class="text-gray-400 flex-shrink-0">&#8361;{{ "{:,.0f}".format(order.price) }} × {{ order.quantity }}</span>
+                </div>
+                {% endfor %}
+            </div>
+
+            {% if first.recipient_name %}
+            <div class="text-xs text-gray-500 bg-gray-50 rounded-xl px-4 py-3 mb-4 leading-relaxed">
+                <span class="font-semibold text-gray-700">{{ first.recipient_name }}</span> · {{ first.phone }}<br>
+                ({{ first.postal_code }}) {{ first.address1 }} {{ first.address2 }}
+                {% if first.delivery_memo %}<br><span class="text-gray-400">메모: {{ first.delivery_memo }}</span>{% endif %}
+            </div>
+            {% endif %}
+
+            <div class="flex items-center justify-between border-t border-gray-50 pt-3">
+                <span class="text-xs text-gray-400">총 {{ g.orders|length }}건</span>
+                <span class="font-bold text-gray-900">&#8361;{{ "{:,.0f}".format(g.total) }}</span>
             </div>
         </div>
         {% endfor %}

@@ -1,5 +1,5 @@
 """마이페이지(주문내역/선호장르 허브) 테스트"""
-from conftest import login_member, make_user, make_book
+from conftest import login_member, make_user, make_book, buy_now
 
 
 def test_mypage_shows_nickname_and_email(client, db):
@@ -23,7 +23,7 @@ def test_mypage_shows_recent_orders_and_total_count(client, db):
     login_member(client, u.id, u.name)
     for i in range(4):
         b = make_book(db, title=f'마이북{i}', stock_quantity=1)
-        client.post(f'/purchase/{b.id}')
+        buy_now(client, b.id, qty=1)
 
     resp = client.get('/member/mypage')
     body = resp.data.decode()
@@ -58,7 +58,7 @@ def test_mypage_only_shows_own_orders_not_other_members(client, db):
     b = make_book(db, title='회원1전용책', stock_quantity=1)
 
     login_member(client, u1.id, u1.name)
-    client.post(f'/purchase/{b.id}')
+    buy_now(client, b.id, qty=1)
 
     login_member(client, u2.id, u2.name)
     resp = client.get('/member/mypage')

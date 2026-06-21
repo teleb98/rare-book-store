@@ -64,11 +64,25 @@ def test_member_routes_blocked_when_anonymous(client):
         assert '/member/login' in resp.headers['Location']
 
 
-def test_member_purchase_blocked_when_anonymous(client, db):
+def test_member_checkout_blocked_when_anonymous(client, db):
     b = make_book_local(db)
-    resp = client.post(f'/purchase/{b.id}')
+    resp = client.get(f'/checkout?book_id={b.id}&qty=1')
     assert resp.status_code == 302
     assert '/member/login' in resp.headers['Location']
+
+    resp2 = client.post(f'/checkout?book_id={b.id}&qty=1', data={
+        'recipient_name': 'x', 'phone': 'x', 'postal_code': 'x', 'address1': 'x',
+    })
+    assert resp2.status_code == 302
+    assert '/member/login' in resp2.headers['Location']
+
+
+def test_cart_routes_blocked_when_anonymous(client, db):
+    b = make_book_local(db)
+    for path, method in [(f'/cart/add/{b.id}', 'post'), ('/cart', 'get')]:
+        resp = getattr(client, method)(path)
+        assert resp.status_code == 302
+        assert '/member/login' in resp.headers['Location']
 
 
 def test_member_review_blocked_when_anonymous(client, db):

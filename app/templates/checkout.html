@@ -1,0 +1,99 @@
+{% extends "base.html" %}
+{% block title %}주문/결제 | Rare Book Store{% endblock %}
+
+{% block content %}
+<div class="max-w-2xl mx-auto px-6 py-16">
+    <h1 class="text-3xl font-serif font-bold text-gray-900 mb-8">주문/결제</h1>
+
+    <!-- 주문 상품 요약 -->
+    <div class="bg-white border border-gray-100 rounded-2xl p-6 mb-6">
+        <h2 class="text-sm font-semibold text-gray-500 uppercase tracking-wider mb-4">주문 상품</h2>
+        <div class="divide-y divide-gray-50">
+            {% for li in items %}
+            <div class="flex items-center justify-between gap-3 py-3 text-sm">
+                <span class="text-gray-900 font-serif line-clamp-1">{{ li.book.title }}</span>
+                <span class="text-gray-500 flex-shrink-0">&#8361;{{ "{:,.0f}".format(li.book.price) }} × {{ li.quantity }}</span>
+            </div>
+            {% endfor %}
+        </div>
+        <div class="flex items-center justify-between border-t border-gray-100 pt-3 mt-1">
+            <span class="text-sm text-gray-500">총 결제 금액</span>
+            <span class="text-xl font-bold text-gray-900">&#8361;{{ "{:,.0f}".format(total) }}</span>
+        </div>
+    </div>
+
+    <!-- 배송지 입력 -->
+    <form method="POST" class="bg-white border border-gray-100 rounded-2xl p-6 space-y-4">
+        {% if buy_now_id %}
+        <input type="hidden" name="book_id" value="{{ buy_now_id }}">
+        <input type="hidden" name="qty" value="{{ buy_now_qty }}">
+        {% endif %}
+
+        <h2 class="text-sm font-semibold text-gray-500 uppercase tracking-wider mb-2">배송지 정보</h2>
+
+        <div class="grid grid-cols-2 gap-3">
+            <div>
+                <label class="block text-xs font-semibold text-gray-600 mb-1.5">받는 분 이름</label>
+                <input type="text" name="recipient_name" required placeholder="홍길동"
+                    value="{{ form.recipient_name if form else '' }}"
+                    class="w-full text-sm bg-gray-50 border border-gray-200 rounded-xl px-4 py-3 focus:outline-none focus:ring-2 focus:ring-gray-900 focus:bg-white transition-all">
+            </div>
+            <div>
+                <label class="block text-xs font-semibold text-gray-600 mb-1.5">연락처</label>
+                <input type="tel" name="phone" required placeholder="010-1234-5678"
+                    value="{{ form.phone if form else '' }}"
+                    class="w-full text-sm bg-gray-50 border border-gray-200 rounded-xl px-4 py-3 focus:outline-none focus:ring-2 focus:ring-gray-900 focus:bg-white transition-all">
+            </div>
+        </div>
+
+        <div>
+            <label class="block text-xs font-semibold text-gray-600 mb-1.5">우편번호</label>
+            <input type="text" name="postal_code" required placeholder="12345"
+                value="{{ form.postal_code if form else '' }}"
+                class="w-full sm:w-40 text-sm bg-gray-50 border border-gray-200 rounded-xl px-4 py-3 focus:outline-none focus:ring-2 focus:ring-gray-900 focus:bg-white transition-all">
+        </div>
+
+        <div>
+            <label class="block text-xs font-semibold text-gray-600 mb-1.5">주소</label>
+            <input type="text" name="address1" required placeholder="기본 주소"
+                value="{{ form.address1 if form else '' }}"
+                class="w-full text-sm bg-gray-50 border border-gray-200 rounded-xl px-4 py-3 mb-2 focus:outline-none focus:ring-2 focus:ring-gray-900 focus:bg-white transition-all">
+            <input type="text" name="address2" placeholder="상세 주소 (동/호수 등, 선택)"
+                value="{{ form.address2 if form else '' }}"
+                class="w-full text-sm bg-gray-50 border border-gray-200 rounded-xl px-4 py-3 focus:outline-none focus:ring-2 focus:ring-gray-900 focus:bg-white transition-all">
+        </div>
+
+        <div>
+            <label class="block text-xs font-semibold text-gray-600 mb-1.5">배송 메모 (선택)</label>
+            <input type="text" name="memo" placeholder="예: 부재 시 경비실에 맡겨주세요"
+                value="{{ form.memo if form else '' }}"
+                class="w-full text-sm bg-gray-50 border border-gray-200 rounded-xl px-4 py-3 focus:outline-none focus:ring-2 focus:ring-gray-900 focus:bg-white transition-all">
+        </div>
+
+        <!-- 신뢰 신호 -->
+        <div class="bg-gray-50 rounded-2xl p-4 space-y-2 text-xs text-gray-500">
+            <div class="flex items-start gap-2.5">
+                <svg class="w-3.5 h-3.5 text-emerald-500 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"/>
+                </svg>
+                <span>출처 확인 도서 · 진품 불일치 시 <strong class="text-gray-700">전액 환불</strong> 보장</span>
+            </div>
+            <div class="flex items-start gap-2.5">
+                <svg class="w-3.5 h-3.5 text-blue-500 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 8h14M5 8a2 2 0 110-4h14a2 2 0 110 4M5 8v10a2 2 0 002 2h10a2 2 0 002-2V8m-9 4h4"/>
+                </svg>
+                <span>주문 후 <strong class="text-gray-700">1–3 영업일</strong> 내 안전 포장 발송</span>
+            </div>
+        </div>
+
+        <p class="text-center text-xs text-gray-400 px-2">
+            주문 확인 후 관리자가 직접 연락드립니다.<br>
+            문의: <a href="mailto:hello@rarebook.co.kr" class="underline">hello@rarebook.co.kr</a>
+        </p>
+
+        <button type="submit" class="w-full bg-gray-900 hover:bg-black text-white font-semibold py-4 rounded-full transition-colors">
+            &#8361;{{ "{:,.0f}".format(total) }} 결제하고 주문하기
+        </button>
+    </form>
+</div>
+{% endblock %}

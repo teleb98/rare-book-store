@@ -45,6 +45,14 @@
                 <a href="mailto:hello@rarebook.co.kr" class="hover:text-black transition-colors">문의</a>
                 {% if session.get('user_id') %}
                 <span class="w-px h-4 bg-gray-200"></span>
+                <a href="{{ url_for('main.cart_view') }}" class="relative hover:text-black transition-colors flex items-center">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 11-4 0 2 2 0 014 0z"/>
+                    </svg>
+                    {% if cart_count %}
+                    <span class="absolute -top-2 -right-2 bg-gray-900 text-white text-[9px] font-bold w-4 h-4 rounded-full flex items-center justify-center">{{ cart_count }}</span>
+                    {% endif %}
+                </a>
                 <a href="{{ url_for('main.member_mypage') }}" class="hover:text-black transition-colors">{{ session.get('user_name') }}님 마이페이지</a>
                 {% elif not session.get('is_admin') %}
                 <span class="w-px h-4 bg-gray-200"></span>
