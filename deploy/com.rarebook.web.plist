@@ -12,7 +12,7 @@
     <string>--workers</string>
     <string>2</string>
     <string>--timeout</string>
-    <string>120</string>
+    <string>300</string>
     <string>run:app</string>
   </array>
   <key>WorkingDirectory</key>

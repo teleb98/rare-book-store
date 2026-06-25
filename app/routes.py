@@ -980,8 +980,10 @@ def admin_tag_genres():
             tagged += 1
         else:
             failed += 1
+        # 책마다 즉시 커밋 — 중간에 타임아웃/장애가 나도 이미 태깅된 결과는 보존된다.
+        # (다음 실행 시 이미 태깅된 도서는 targets 조회에서 자동으로 제외되어 이어서 처리됨)
+        db.session.commit()
 
-    db.session.commit()
     if failed:
         flash(f'{tagged}권 자동 태깅 완료, {failed}권 실패 (API 오류 — 재시도해주세요).', 'success' if tagged else 'error')
     else:

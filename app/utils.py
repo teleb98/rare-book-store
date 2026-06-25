@@ -81,7 +81,8 @@ def auto_tag_genre(title: str, author: str, description: Optional[str]) -> List[
 
     try:
         model = genai.GenerativeModel('gemini-flash-latest')
-        response = model.generate_content(prompt)
+        # 호출 1건이 너무 오래 걸려 gunicorn 워커 타임아웃(전체 배치)을 다 잡아먹지 않도록 개별 타임아웃을 둔다.
+        response = model.generate_content(prompt, request_options={'timeout': 20})
         json_text = response.text.replace('```json', '').replace('```', '').strip()
         genres = json.loads(json_text)
         if not isinstance(genres, list):
