@@ -9,11 +9,12 @@ import google.generativeai as genai
 import os
 import json
 import secrets
+import time
 from PIL import Image
 import io
 import base64
 
-from app.utils import search_books_with_fallback, auto_tag_genre, GENRE_TAXONOMY, upgrade_cover_url, is_allowed_cover_image_url
+from app.utils import search_books_with_fallback, auto_tag_genre, generate_curator_note, GENRE_TAXONOMY, upgrade_cover_url, is_allowed_cover_image_url
 from app.oauth import PROVIDERS, is_provider_configured, build_authorize_url, exchange_code_for_profile
 # Configure Gemini
 GOOGLE_API_KEY = os.environ.get("GOOGLE_API_KEY")
@@ -973,7 +974,9 @@ def admin_tag_genres():
         return redirect(url_for('main.admin'))
 
     tagged, failed = 0, 0
-    for book in targets:
+    for i, book in enumerate(targets):
+        if i > 0:
+            time.sleep(13)  # Gemini 무료 등급 분당 호출 한도(5건/분)를 넘지 않도록 호출 간 간격을 둔다
         genres = auto_tag_genre(book.title, book.author, book.description)
         if genres:
             book.genre = ','.join(genres)
@@ -988,6 +991,47 @@ def admin_tag_genres():
         flash(f'{tagged}권 자동 태깅 완료, {failed}권 실패 (API 오류 — 재시도해주세요).', 'success' if tagged else 'error')
     else:
         flash(f'{tagged}권 장르 자동 태깅 완료. 결과는 관리자 화면에서 검수/수정하세요.', 'success')
+    return redirect(url_for('main.admin'))
+
+
+def _looks_truncated(description):
+    """검색 API 미리보기 스니펫이 문장 중간에서 끊긴 것으로 보이는지 휴리스틱 판단"""
+    text = (description or '').strip()
+    if not text:
+        return True
+    return text[-1] not in '.!?」』”’"\''
+
+
+@main.route('/admin/regenerate-notes', methods=['POST'])
+@admin_required
+def admin_regenerate_notes():
+    """문장 중간에서 끊긴 것으로 보이는 큐레이터 노트(검색 API 미리보기 스니펫)를
+    Gemini로 완결된 글로 재작성한다. 장르 태깅과 동일하게 책마다 즉시 커밋한다."""
+    if not GOOGLE_API_KEY:
+        flash('Google API Key가 설정되지 않아 큐레이터 노트 재작성을 실행할 수 없습니다.', 'error')
+        return redirect(url_for('main.admin'))
+
+    targets = [b for b in Book.query.all() if _looks_truncated(b.description)]
+    if not targets:
+        flash('끊긴 것으로 보이는 큐레이터 노트가 없습니다.', 'success')
+        return redirect(url_for('main.admin'))
+
+    done, failed = 0, 0
+    for i, book in enumerate(targets):
+        if i > 0:
+            time.sleep(13)  # Gemini 무료 등급 분당 호출 한도(5건/분)를 넘지 않도록 호출 간 간격을 둔다
+        note = generate_curator_note(book.title, book.author, book.description)
+        if note:
+            book.description = note
+            done += 1
+        else:
+            failed += 1
+        db.session.commit()  # 책마다 즉시 커밋 — 중간에 실패해도 이미 완료된 결과는 보존된다.
+
+    if failed:
+        flash(f'{done}권 노트 재작성 완료, {failed}권 실패 (API 오류 — 잠시 후 다시 시도해주세요).', 'success' if done else 'error')
+    else:
+        flash(f'{done}권의 큐레이터 노트를 재작성했습니다.', 'success')
     return redirect(url_for('main.admin'))
 
 

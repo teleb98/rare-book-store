@@ -51,9 +51,14 @@ def is_allowed_cover_image_url(url: Optional[str]) -> bool:
 USER_AGENT = "RareBookStore/1.0 (Flask-based rare book inventory app)"
 
 # 도서 장르 자동 태깅용 분류 체계
+# 국내 주요 서점(알라딘) 1depth 카테고리와 아마존 Books 카테고리를 참고해 보강함.
+# - 자기계발: 알라딘 "자기계발"에 대응. 기존엔 경제/경영·에세이/철학에 억지로 끼워 넣던
+#   자기계발서(시크릿, Atomic Habits 등)를 위한 별도 카테고리.
+# - 장르소설: 알라딘 "장르소설"/아마존 "Mystery, Thriller & Suspense", "Science Fiction & Fantasy"에
+#   대응. 추리·스릴러·SF·디스토피아 풍자소설(1984, 동물농장 등) 전용.
 GENRE_TAXONOMY = [
-    "고전문학", "현대소설", "인문/교양", "과학/대중과학",
-    "역사", "에세이/철학", "예술/디자인", "경제/경영", "기타"
+    "고전문학", "현대소설", "장르소설", "인문/교양", "과학/대중과학",
+    "역사", "에세이/철학", "예술/디자인", "경제/경영", "자기계발", "기타"
 ]
 
 
@@ -92,6 +97,43 @@ def auto_tag_genre(title: str, author: str, description: Optional[str]) -> List[
     except Exception as e:
         print(f"장르 자동 태깅 실패 ('{title}'): {e}")
         return []
+
+
+def generate_curator_note(title: str, author: str, snippet: Optional[str] = None) -> Optional[str]:
+    """
+    Gemini로 완결된 한국어 큐레이터 노트를 새로 작성한다.
+    '검색으로 등록' 시 가져오는 설명은 네이버/카카오 등 검색 API 자체의 미리보기 스니펫이라
+    문장 중간에서 끊기는 경우가 많다 — 이 함수는 그걸 대체할 완결된 글을 생성한다.
+    GOOGLE_API_KEY가 없거나 호출이 실패하면 None을 반환한다 (호출부에서 기존 값을 유지).
+    """
+    api_key = os.environ.get("GOOGLE_API_KEY")
+    if not api_key:
+        return None
+
+    import google.generativeai as genai
+    genai.configure(api_key=api_key)
+
+    prompt = f"""당신은 박물관 큐레이터처럼 책을 소개하는 전문 북 큐레이터입니다.
+아래 책에 대해, 줄거리/핵심 내용과 문학적·사회적 의미, 왜 소장할 가치가 있는지를 다루는
+완결된 한국어 큐레이터 노트를 3~5문장으로 작성하세요.
+
+제목: {title}
+저자: {author}
+참고용 짧은 소개(끊겨 있을 수 있음, 참고만 하고 그대로 베끼지 마세요): {snippet or '(없음)'}
+
+요구사항:
+- 반드시 완결된 문장으로 끝낼 것 (중간에 끊기면 안 됨)
+- 책 표지나 디자인 묘사 금지, 내용/주제/의의 위주로 작성
+- 마크다운, 따옴표, 접두사 없이 노트 본문만 출력"""
+
+    try:
+        model = genai.GenerativeModel('gemini-flash-latest')
+        response = model.generate_content(prompt, request_options={'timeout': 20})
+        note = response.text.strip()
+        return note or None
+    except Exception as e:
+        print(f"큐레이터 노트 재작성 실패 ('{title}'): {e}")
+        return None
 
 def search_open_library(title: str, author: str) -> List[Dict[str, Optional[str]]]:
     """
